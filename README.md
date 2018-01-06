@@ -7,3 +7,5 @@ This version of the package is able to estimate  poisson and logit models with h
 In near future the package will be extended to probit models and robust/clustered standard errors.
 
 If you have any suggestions for improvements, feel free to contact me (Amrei.Stammann@hhu.de).
+
+The package can be installed by `devtools::install_github("amrei-stammann/alpaca")`.
