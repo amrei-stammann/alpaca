@@ -8,4 +8,4 @@ In near future the package will be extended to probit models and robust/clustere
 
 If you have any suggestions for improvements, feel free to contact me (Amrei.Stammann@hhu.de).
 
-The package can be installed by `devtools::install_github("amrei-stammann/alpaca")`.
+The package can be installed by `devtools::install_github("amrei-stammann/alpaca", build_vignettes = TRUE)`.
