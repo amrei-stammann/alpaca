@@ -92,6 +92,8 @@ feglm <- function(formula = NULL,
   X <- as.matrix(model.matrix(update(formula, . ~ . - 1), data = mf, rhs = 1))
   D <- model.part(formula, data = mf, rhs = 2)
   
+  print(D)
+  
   # Extract names of structural parameters.
   nms.sp <- attr(X, "dimnames")[[2]]
   
@@ -139,6 +141,8 @@ feglm <- function(formula = NULL,
     }
   }
   nobs.pc <- nrow(mf) - length(y)
+  
+  print(D)
   
   # Ensure factors are consectuive integers.
   D <- sapply(D, function(x) as.integer(factor(x)))
