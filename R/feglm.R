@@ -122,7 +122,7 @@ feglm <- function(formula = NULL,
       
       # Drop observations that do not contribute to the loglikelihood.
       if (family %in% c("logit", "probit")) {
-        mean.tab <- mean.tab[(mean.tab[, 2] > 0 && mean.tab[, 2] < 1), ]
+        mean.tab <- mean.tab[(mean.tab[, 2] > 0 & mean.tab[, 2] < 1), ]
         idx <- mean.tab[, 1]
         idx <- D[, k] %in% idx
         y <- y[idx]
@@ -140,7 +140,7 @@ feglm <- function(formula = NULL,
   }
   nobs.pc <- nrow(mf) - length(y)
   
-  # Ensure factors are consectuive integers.
+  # Ensure factors are consecutive integers.
   D <- sapply(D, function(x) as.integer(factor(x)))
 
   # Number of levels of k categories.
