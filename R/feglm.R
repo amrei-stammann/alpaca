@@ -162,6 +162,8 @@ feglm <- function(formula = NULL,
     }
   }
   
+  print(D)
+  
   # Maximize maximum likelihood.
   mod <- .feglm(y, X, D - 1L, lvls.k, beta.start, D.alpha.start, fam, ctrl)
   
