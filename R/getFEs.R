@@ -27,7 +27,7 @@
 #' @details 
 #' ...
 #' @return
-#' The function \code{getFEs} returns a vector of estimated fixed effects.
+#' The function \code{getFEs} returns a named vector of estimated fixed effects.
 #' @references 
 #' Kaczmarz, S. (1937). "Angenaeherte Aufloesung von Systemen linearer
 #' Gleichungen". Bulletin International de l'Academie Polonaise des Sciences et
@@ -55,6 +55,8 @@ getFEs <- function(obj,
   }
   
   # Recover fixed effects using Kaczmarz and return.
-  as.vector(.kaczmarz(obj[["b"]], obj[["w.tilde"]], A, sum(lvls.k), alpha.tol,
-                      trace))
+  alpha <- as.vector(.kaczmarz(obj[["b"]], obj[["w.tilde"]], A, sum(lvls.k),
+                               alpha.tol, trace))
+  names(alpha) <- obj[["nms.fe"]]
+  alpha
 }

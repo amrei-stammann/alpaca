@@ -25,6 +25,8 @@ predict.alpaca <- function(object, type = c("link", "response"), ...) {
   if (type == "response") {
     if (object[["family"]] == "logit") {
       x <- plogis(x)
+    } else if (object[["family"]] == "probit") {
+      x <- pnorm(x)
     } else if (object[["family"]] == "poisson") {
       x <- exp(x)
     }

@@ -2,7 +2,7 @@
 #' feglm: A function to efficiently estimate glm's with high-dimensional 
 #' \eqn{k}-way fixed effects
 #' @description
-#' \strong{Caution}: Package version 0.1 preliminary!
+#' \strong{Caution}: Package version 0.1.1 preliminary!
 #' 
 #' \code{feglm} is used to fit fixed effects generalized linear models with many
 #' high-dimensional fixed effects based on unconditional maximum likelihood.
@@ -29,8 +29,8 @@
 #' @param
 #' family the description of the error distribution and link function to be used
 #' in the model. This has to be a character string naming the
-#' model function. The value should be any of \code{"logit"} or
-#' \code{"poisson"}. Default is \code{"logit"}.
+#' model function. The value should be any of \code{"logit"}, \code{"probit"},
+#' or \code{"poisson"}. Default is \code{"logit"}.
 #' @param
 #' control a named list of parameters for controlling the fitting process.
 #' Defaults see \code{\link{alpaca.control}}.
@@ -46,15 +46,14 @@
 #' "Estimating Fixed Effects Logit Models with Large Panel Data". Working paper.
 #' @references 
 #' Stammann, A. (2018). "Fast and Feasible Estimation of Generalized Linear
-#' Models with High-Dimensional K-Way Fixed Effects". Working Paper.
+#' Models with High-Dimensional k-Way Fixed Effects". Working Paper.
 #' @export
 feglm <- function(formula = NULL,
                   data = NULL,
                   beta.start = NULL,
                   D.alpha.start = NULL,
-                  family = c("logit", "poisson"),
+                  family = c("logit", "probit", "poisson"),
                   control = list()) {
-  # TODO: Checks
   # Validity of input argument (formula).
   if (is.null(formula)) {
     stop("'formula' has to be specified.")
@@ -70,9 +69,11 @@ feglm <- function(formula = NULL,
   }
   
   # Validity of input argument (family).
-  # TODO: ...
   family <- match.arg(family)
-  switch (family, logit = fam <- 0L, poisson = fam <- 2L)
+  switch (family,
+          logit = family.uint <- 0L,
+          probit = family.uint <- 1L,
+          poisson = family.uint <- 2L)
   
   # Validity of input argument (control).
   if (!inherits(control, "list")) {
@@ -80,7 +81,7 @@ feglm <- function(formula = NULL,
   }
   
   # Extract control list.
-  ctrl <- do.call(alpaca.control, control)
+  control <- do.call(alpaca.control, control)
   
   # Update formula and drop missing values.
   formula <- Formula(formula)
@@ -89,8 +90,12 @@ feglm <- function(formula = NULL,
   
   # Extract data.
   y <- model.response(mf)
-  X <- as.matrix(model.matrix(update(formula, . ~ . - 1), data = mf, rhs = 1))
-  D <- model.part(formula, data = mf, rhs = 2)
+  # Bugfix:
+  # Needed to ensure that factor variables are correclty dummy encoded.
+  # Old:
+  # X <- as.matrix(model.matrix(update(formula, . ~ . - 1), data = mf, rhs = 1))
+  X <- as.matrix(model.part(formula, data = mf, rhs = 1L))
+  D <- model.part(formula, data = mf, rhs = 2L)
   
   # Extract names of structural parameters.
   nms.sp <- attr(X, "dimnames")[[2]]
@@ -107,31 +112,40 @@ feglm <- function(formula = NULL,
            parameters.")
     }
   } else {
-    if (family %in% c("logit", "probit")) {
-      beta.start <- coef(lm(I(log((y + 0.5) / 2.0)) ~ X - 1))
-    } else if (family == "poisson") {
-      beta.start <- coef(lm(I(log(y + 0.1)) ~ X - 1))
-    }
+    # Changed:
+    # Zero seems to work better.
+    # Old:
+    # if (family %in% c("logit", "probit")) {
+    #   beta.start <- coef(lm(I(log((y + 0.5) / 2.0)) ~ X - 1))
+    # } else if (family == "poisson") {
+    #   beta.start <- coef(lm(I(log(y + 0.1)) ~ X - 1))
+    # }
+    beta.start <- numeric(ncol(X))
   }
   
   # Drop perfectly classified observations.
-  if (ctrl[["drop.pc"]] == TRUE) {
+  if (control[["drop.pc"]] == TRUE) {
     for (k in seq(ncol(D))) {
       # Compute group means.
-      mean.tab <- aggregate(y ~ D[, k], FUN = mean)
+      mean.tab <- aggregate(y ~ D[[k]], FUN = mean)
       
       # Drop observations that do not contribute to the loglikelihood.
       if (family %in% c("logit", "probit")) {
-        mean.tab <- mean.tab[(mean.tab[, 2] > 0 && mean.tab[, 2] < 1), ]
-        idx <- mean.tab[, 1]
-        idx <- D[, k] %in% idx
+        # Bugfix:
+        # Dropping perfectly classified observations for binomial models should
+        # now work as intended. Thanks to jmboehm@github
+        # Old:
+        # mean.tab <- mean.tab[(mean.tab[, 2L] > 0.0 && mean.tab[, 2L] < 1.0), ]
+        mean.tab <- mean.tab[(mean.tab[, 2L] > 0.0 & mean.tab[, 2L] < 1.0), ]
+        idx <- mean.tab[, 1L]
+        idx <- D[[k]] %in% idx
         y <- y[idx]
         X <- as.matrix(X[idx, ])
         D <- as.data.frame(D[idx, ])
       } else if (family == "poisson") {
-        mean.tab <- mean.tab[mean.tab[, 2] > 0.0, ]
-        idx <- mean.tab[, 1]
-        idx <- D[, k] %in% idx
+        mean.tab <- mean.tab[mean.tab[, 2L] > 0.0, ]
+        idx <- mean.tab[, 1L]
+        idx <- D[[k]] %in% idx
         y <- y[idx]
         X <- as.matrix(X[idx, ])
         D <- as.data.frame(D[idx, ])
@@ -141,10 +155,17 @@ feglm <- function(formula = NULL,
   nobs.pc <- nrow(mf) - length(y)
   
   # Ensure factors are consectuive integers.
-  D <- sapply(D, function(x) as.integer(factor(x)))
-
-  # Number of levels of k categories.
-  lvls.k <- sapply(seq(ncol(D)), function(x) max(D[, x]))
+  # Changes:
+  # Some performance optimization and extract the names of the fixed effects.
+  # Old:
+  # D <- sapply(D, function(x) as.integer(factor(x)))
+  # lvls.k <- sapply(seq(ncol(D)), function(x) max(D[, x]))
+  nms.k <- colnames(D)
+  D[nms.k] <- lapply(D[nms.k], factor)
+  nms.fe <- lapply(D[nms.k], levels)
+  lvls.k <- sapply(nms.fe, length)
+  nms.fe <- unlist(nms.fe)
+  D <- sapply(D, as.integer)
   
   # Validity of input argument (D.alpha.start).
   if (!is.null(D.alpha.start)) {
@@ -153,17 +174,25 @@ feglm <- function(formula = NULL,
            observations.")
     }
   } else {
+    # Changed:
+    # Better starting values improve convergence of pseudo-demeaning.
     D.alpha.start <- numeric(length(y))
-    if (family == "poisson") {
-      D.alpha.start <- numeric(length(y))
+    if (family %in% c("logit", "probit")) {
       for (k in seq(ncol(D))) {
-        D.alpha.start <- D.alpha.start + log(ave(y, D[, k]) + 0.1)
+        D.alpha.start <- D.alpha.start + log(ave(y, D[, k]) + 0.5 / 2.0) /
+          ncol(D)
+      }
+    } else if (family == "poisson") {
+      for (k in seq(ncol(D))) {
+        # D.alpha.start <- D.alpha.start + log(ave(y, D[, k]) + 0.1)
+        D.alpha.start <- D.alpha.start + log(ave(y, D[, k]) + 0.1) / ncol(D)
       }
     }
   }
   
   # Maximize maximum likelihood.
-  mod <- .feglm(y, X, D - 1L, lvls.k, beta.start, D.alpha.start, fam, ctrl)
+  mod <- .feglm(y, X, D - 1L, lvls.k, beta.start, D.alpha.start, family.uint,
+                control)
   
   # Modify 'mod'.
   mod[["coefficients"]] <- as.vector(mod[["coefficients"]])
@@ -173,19 +202,19 @@ feglm <- function(formula = NULL,
   mod[["w.tilde"]] <- as.vector(mod[["w.tilde"]])
   mod[["gradient"]] <- as.vector(mod[["gradient"]])
   names(mod[["gradient"]]) <- nms.sp
-  colnames(mod[["gradient.cont"]]) <- nms.sp
-  rownames(mod[["Hessian"]]) <- nms.sp
-  colnames(mod[["Hessian"]]) <- nms.sp
+  dimnames(mod[["gradient.cont"]]) <- list(seq(length(y)), nms.sp)
+  dimnames(mod[["Hessian"]]) <- list(nms.sp, nms.sp)
   
   # Extend 'mod'.
   mod[["nobs"]] <- length(y)
   mod[["nobs.na"]] <- nobs.na
   mod[["nobs.pc"]] <- nobs.pc
   mod[["lvls.k"]] <- lvls.k
+  mod[["nms.fe"]] <- nms.fe
   mod[["formula"]] <- formula
   mod[["data"]] <- list(y = y, X = X, D = D)
   mod[["family"]] <- family
-  mod[["control"]] <- ctrl
+  mod[["control"]] <- control
   
   # Return result list.
   structure(mod, class = "alpaca")

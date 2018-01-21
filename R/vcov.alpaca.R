@@ -16,7 +16,7 @@
 vcov.alpaca <- function(object, ...) {
   # Compute eigenvalues to check if the Hessian is invertible and compute
   # its inverse.
-  H <- object[["Hessian"]]
+  H <- - object[["Hessian"]]
   ev <- abs(eigen(H, symmetric = TRUE, only.values = TRUE)[["values"]])
   if (min(ev) > .Machine[["double.eps"]] * max(ev) * 10.0) {
     V <- solve(H)

@@ -14,7 +14,7 @@
 #' \code{\link{feglm}}
 #' @export
 print.alpaca <- function(x, digits = max(3L, getOption("digits") - 3L), ...) {
-  cat(x[["family"]], ", l= ", paste0(x[["lvls.k"]], collapse = ", ")
-      , "\n\n", sep = "")
+  cat(x[["family"]], ", l= [", paste0(x[["lvls.k"]], collapse = ", ")
+      , "]\n\n", sep = "")
   print(coef(x), digits = digits)
 }
