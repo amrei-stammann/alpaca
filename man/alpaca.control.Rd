@@ -4,8 +4,8 @@
 \alias{alpaca.control}
 \title{Set \code{alpaca} Control Parameters}
 \usage{
-alpaca.control(step.tol = 1e-06, grad.tol = 1e-05, dev.tol = 1e-08,
-  pseudo.tol = 1e-08, rho.tol = 0.001, iter.max = 100L, trace = 0L,
+alpaca.control(step.tol = 1e-08, grad.tol = 1e-04, dev.tol = 1e-08,
+  pseudo.tol = 1e-08, rho.tol = 1e-04, iter.max = 100L, trace = 0L,
   drop.pc = TRUE, ...)
 }
 \arguments{
@@ -13,13 +13,13 @@ alpaca.control(step.tol = 1e-06, grad.tol = 1e-05, dev.tol = 1e-08,
 algorithm. This specific stopping condition is based on the euclidean norm of
 the step size in iteration \eqn{r} and can be expressed as follows: 
 \eqn{||\boldsymbol{\beta}_{r} - \boldsymbol{\beta}_{r - 1}||_{2} < 
-\text{tol}}{||step|| < tol}. Default is \code{1.0e-06}.}
+\text{tol}}{||step|| < tol}. Default is \code{1.0e-08}.}
 
 \item{grad.tol}{tolerance level for one of the stopping conditions in the IRLS
 algorithm. This specific stopping condition is based on the euclidean norm of
 the gradient in iteration \eqn{r} and can be expressed as follows: 
 \eqn{||\mathbf{g}_{r}||_{2} < \text{tol}}{||g|| < tol}.
-Default is \code{1.0e-05}.}
+Default is \code{1.0e-04}.}
 
 \item{dev.tol}{tolerance level for one of the stopping conditions in the IRLS
 algorithm. This specific stopping condition is based on the relative change
@@ -36,7 +36,7 @@ size in iteration \eqn{i} and can be expressed as follows:
 \item{rho.tol}{tolerance level for the stephalving in iteration \eqn{r}. Stephalving
 only takes place if the deviance in iteration \eqn{r} is worse than the one
 in the previous iteration. The stopping condition can be expressed as
-follows: \eqn{\rho < \text{tol}}{\rho < tol}. Default is \code{1.0e-03}.}
+follows: \eqn{\rho < \text{tol}}{\rho < tol}. Default is \code{1.0e-04}.}
 
 \item{iter.max}{unsigned integer indicating the maximum number of iterations of the
 IRLS algorithm.}

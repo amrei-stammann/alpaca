@@ -19,7 +19,7 @@ stopped in iteration \eqn{i} if
 iteration. Default is \code{0}. See \code{details}.}
 }
 \value{
-The function \code{getFEs} returns a vector of estimated fixed effects.
+The function \code{getFEs} returns a named vector of estimated fixed effects.
 }
 \description{
 Recover the estimated fixed effects using the Kaczmarz method 

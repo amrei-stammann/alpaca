@@ -6,7 +6,8 @@
 \eqn{k}-way fixed effects}
 \usage{
 feglm(formula = NULL, data = NULL, beta.start = NULL,
-  D.alpha.start = NULL, family = c("logit", "poisson"), control = list())
+  D.alpha.start = NULL, family = c("logit", "probit", "poisson"),
+  control = list())
 }
 \arguments{
 \item{formula}{an object of class \code{"formula"}: a symbolic description of the
@@ -25,8 +26,8 @@ effects contribution in the linear predictor. Default see \code{Details}.}
 
 \item{family}{the description of the error distribution and link function to be used
 in the model. This has to be a character string naming the
-model function. The value should be any of \code{"logit"} or
-\code{"poisson"}. Default is \code{"logit"}.}
+model function. The value should be any of \code{"logit"}, \code{"probit"},
+or \code{"poisson"}. Default is \code{"logit"}.}
 
 \item{control}{a named list of parameters for controlling the fitting process.
 Defaults see \code{\link{alpaca.control}}.}
@@ -35,7 +36,7 @@ Defaults see \code{\link{alpaca.control}}.}
 The function \code{feglm} returns a named list of class \code{"alpaca"}.
 }
 \description{
-\strong{Caution}: Package version 0.1 preliminary!
+\strong{Caution}: Package version 0.1.1 preliminary!
 
 \code{feglm} is used to fit fixed effects generalized linear models with many
 high-dimensional fixed effects based on unconditional maximum likelihood.
@@ -57,5 +58,5 @@ Stammann, A., F. Heiss, and D. McFadden (2016).
 "Estimating Fixed Effects Logit Models with Large Panel Data". Working paper.
 
 Stammann, A. (2018). "Fast and Feasible Estimation of Generalized Linear
-Models with High-Dimensional K-Way Fixed Effects". Working Paper.
+Models with High-Dimensional k-Way Fixed Effects". Working Paper.
 }
