@@ -27,6 +27,102 @@ double ldpois(const double kk,
 }
 
 
+// Computes quantil of standard normal distribution.
+// AS 241: The Percentage Points of the Normal Distribution
+// Michael J. Wichura 1988.
+// Translated from original fortran code.
+// Same algorithm as used in base R.
+double PPND16(const double kp) {
+  double r;
+  double val;
+  const double kq = kp - 0.5;
+  if (std::abs(kq) <= 0.425) {
+    r = 0.180625 - std::pow(kq, 2);
+    val = kq * (((((((2509.0809287301226727 * r +
+      33430.575583588128105) * r + 67265.770927008700853) * r +
+      45921.953931549871457) * r + 13731.693765509461125) * r +
+      1971.5909503065514427) * r + 133.14166789178437745) * r +
+      3.387132872796366608)
+      / (((((((5226.495278852854561 * r +
+        28729.085735721942674) * r + 39307.89580009271061) * r +
+        21213.794301586595867) * r + 5394.1960214247511077) * r +
+        687.1870074920579083) * r + 42.313330701600911252) * r + 1.0);
+  } else {
+    double r;
+    if (kq < 0.0) {
+      r = kp;
+    } else {
+      r = 1.0 - kp;
+    }
+    
+    if (r == 0.0) {
+      val = std::numeric_limits<double>::infinity();
+    } else {
+      r = std::sqrt(- std::log(r));
+      if (r <= 5.0) {
+        r -= 1.6;
+        val = (((((((7.7454501427834140764e-04 * r + 0.0227238449892691845833) *
+          r + 0.24178072517745061177) * r + 1.27045825245236838258) * r + 
+          3.64784832476320460504) * r + 5.7694972214606914055) * r + 
+          4.6303378461565452959) * r + 1.42343711074968357734) / 
+          (((((((1.05075007164441684324e-09 * r + 5.475938084995344946e-04) * 
+          r + 0.0151986665636164571966) * r + 0.14810397642748007459) * r + 
+          0.68976733498510000455) * r + 1.6763848301838038494) * r + 
+          2.05319162663775882187) * r + 1.0);
+      } else {
+        r -= 5.0;
+        val = (((((((2.01033439929228813265e-07 * r + 
+          2.71155556874348757815e-05) * r + 0.0012426609473880784386) * r + 
+          0.026532189526576123093) * r + 0.29656057182850489123) * r + 
+          1.7848265399172913358) * r + 5.4637849111641143699) * r + 
+          6.6579046435011037772) / 
+          (((((((2.04426310338993978564e-15 * r + 1.4215117583164458887e-07) * 
+          r + 1.8463183175100546818e-05) * r + 7.868691311456132591e-04) * r +
+          0.0148753612908506148525) * r + 0.13692988092273580531) * r +
+          0.59983220655588793769) * r + 1.0);
+      }
+    }
+    
+    if (kq <= 0.0) {
+      val = - val;
+    }
+  }
+  
+  return val;
+}
+
+
+/*
+ * Vectorized Distributions
+ */
+
+
+arma::vec plogis(const arma::vec &kx) {
+  return 1.0 / (1.0 + arma::exp(- kx));
+}
+
+
+arma::vec dnorm(const arma::vec &kx) {
+  return arma::exp(- arma::pow(kx, 2) / 2.0) / std::sqrt(2.0 * arma::datum::pi);
+}
+
+
+arma::vec pnorm(const arma::vec &kx) {
+  return (1.0 + arma::erf(kx / std::sqrt(2.0))) / 2.0;
+}
+
+
+arma::vec qnorm(const arma::vec &kx) {
+  const unsigned int kn = kx.n_rows;
+  arma::vec x(kn);
+  for (unsigned int i = 0 ; i < kn ; ++i) {
+    x(i) = PPND16(kx(i));
+  }
+  
+  return x;
+}
+
+
 /*
  * GLM's
  */
@@ -42,7 +138,14 @@ arma::vec InverseLink(const arma::vec &keta,
   arma::vec mu(kn);
   if (kfamily == 0) {
     // --- Logit ---
-    mu = 1.0 / (1.0 + arma::exp(- keta));
+    mu = plogis(keta);
+    
+    // Safeguard mu.
+    mu(arma::find(mu < keps)).fill(keps);
+    mu(arma::find(mu > 1.0 - keps)).fill(1.0 - keps);
+  } else if (kfamily == 1) {
+    // --- Probit ---
+    mu = pnorm(keta);
     
     // Safeguard mu.
     mu(arma::find(mu < keps)).fill(keps);
@@ -67,7 +170,10 @@ arma::vec DetaDmu(const arma::vec &kmu,
   if (kfamily == 0) {
     // --- Logit ---
     detadmu = 1.0 / (kmu % (1.0 - kmu));
-  } else if (kfamily == 2) {
+  } else if (kfamily == 1) {
+    // --- Probit ---
+    detadmu = 1.0 / dnorm(qnorm(kmu));
+  } if (kfamily == 2) {
     // --- Poisson ---
     detadmu = 1.0 / kmu;
   }
@@ -81,8 +187,8 @@ arma::vec Variance(const arma::vec &kmu,
   // Compute variance.
   const unsigned int kn = kmu.n_rows;
   arma::vec v(kn);
-  if (kfamily == 0) {
-    // --- Logit ---
+  if (kfamily == 0 || kfamily == 1) {
+    // --- Binomial ---
     v = kmu % (1.0 - kmu);
   } else if(kfamily == 2) {
     // --- Poisson ---
@@ -192,8 +298,8 @@ double LogLikelihood(const arma::vec &kbeta,
   
   // Compute sum of the loglikelihood.
   double L = 0.0;
-  if (kfamily == 0) {
-    // --- Logit ---
+  if (kfamily == 0 || kfamily == 1) {
+    // --- Binomial ---
     for (unsigned int i = 0 ; i < kn ; ++i) {
       const double kx = ldbinom(ky(i), 1.0, kmu(i));
       L += std::isfinite(kx) ? kx : - kmax;
@@ -234,16 +340,17 @@ double Deviance(const arma::vec &kbeta,
   
   // Compute deviance.
  double d = 0.0;
-  if (kfamily == 0) {
+  if (kfamily == 0 || kfamily == 1) {
+    // --- Binomial ---
     for (unsigned int i = 0 ; i < kn ; ++i) {
-      if (ky(i) == 1) {
+      if (ky(i) == 1.0) {
         d -= 2.0 * std::log(kmu(i));
       } else {
-        const double kx = kmu(i) == 1.0 ? kmu(i) - keps : kmu(i);
-        d -= 2.0 * std::log(1.0 - kx);
+        d -= 2.0 * std::log(1.0 - kmu(i));
       }
     }
   } else if (kfamily == 2) {
+    // --- Poisson ---
     for (unsigned int i = 0 ; i < kn ; ++i) {
       const double kx = 2.0 * (xlogy(ky(i), ky(i) / kmu(i)) - ky(i) + kmu(i));
       d += std::isfinite(kx) ? kx : kmax;
@@ -252,6 +359,78 @@ double Deviance(const arma::vec &kbeta,
   
   return d;
 }
+
+
+/*
+ * Step Computation
+ */
+
+
+// Safeguarded Cholesky decomposition.
+arma::mat CholSave(const arma::mat &kA) {
+  // Compute tau.
+  const double kbeta = 1.0e-03;
+  const unsigned int kn = kA.n_rows;
+  const double kmin = kA.diag().min();
+  double tau;
+  if (kmin <= 0.0) {
+    tau = - kmin + kbeta;
+  } else {
+    tau = 0.0;
+  }
+  
+  // Try Cholesky.
+  arma::mat L(kn, kn);
+  while (true) {
+    // Cholesky decomposition.
+    const arma::mat kB = kA + tau * arma::eye(kn, kn);
+    bool success = true;
+    for (unsigned int j = 0 ; j < kn ; ++j) {
+      L(j, j) = kB(j, j);
+      for (unsigned int s = 0 ; s < j ; ++s) {
+        L(j, j) -= std::pow(L(j, s), 2);
+      }
+      if (L(j, j) > 0.0) {
+        L(j, j) = std::sqrt(L(j, j));
+      } else {
+        success = false;
+        break;
+      }
+      for (unsigned int i = j + 1 ; i < kn ; ++i) {
+        L(i, j) = kB(i, j);
+        for (unsigned int s = 0 ; s < j ; ++s) {
+          L(i, j) -= (L(i, s) * L(j, s));
+        }
+        L(i, j) /= L(j, j);
+      }
+    }
+    
+    // Check for success and break.
+    if (success == true) {
+      break;
+    }
+    
+    // Increase tau.
+    tau = std::max(10.0 * tau, kbeta);
+  }
+  
+  // Return lower triangular.
+  return L;
+}
+
+
+// Solve system of equation using forward and backsubstituion.
+arma::vec Solve(const arma::mat &kH,
+                const arma::vec &kg) {
+  const arma::mat kL = CholSave(kH);
+  const arma::vec kz = arma::solve(arma::trimatl(kL), kg);
+  return arma::solve(arma::trimatu(kL.t()), kz);
+}
+
+
+/*
+ * FEGLM()
+ */
 
 
 // [[Rcpp::export(name = ".feglm")]]
@@ -334,10 +513,13 @@ Rcpp::List FEGLM(const arma::vec &ky,
     }
     
     // Compute update of the structural parameters.
+    // Changes:
+    // Use safeguarded Cholesky decomposition to compute step.
+    // Old:
+    // const arma::vec kbeta_upd = H.i() * g;
     g = MX_tilde.t() * kMy_tilde;
     H = MX_tilde.t() * MX_tilde;
-    const arma::mat kH_inv = H.i();
-    const arma::vec kbeta_upd = kH_inv * g;
+    const arma::vec kbeta_upd = Solve(H, g);
     
     // Trace.
     if (kc_trace > 1) {
@@ -373,7 +555,7 @@ Rcpp::List FEGLM(const arma::vec &ky,
     }
     
     // Check termination (Gradient - convergence).
-    if (arma::norm(g) < kc_grad_tol) {
+    if (arma::abs(g).max() < kc_grad_tol) {
       if (kc_trace > 0) {
         Rcpp::Rcout << "Converged - Small Gradient." << std::endl;
       }
@@ -441,7 +623,7 @@ Rcpp::List FEGLM(const arma::vec &ky,
                             Rcpp::Named("w.tilde") = w_tilde,
                             Rcpp::Named("gradient") = g,
                             Rcpp::Named("gradient.cont") = G,
-                            Rcpp::Named("Hessian") = H,
+                            Rcpp::Named("Hessian") = - H,
                             Rcpp::Named("conv") = conv,
                             Rcpp::Named("iter") = iter);
 }
