@@ -16,8 +16,8 @@
 #' @importFrom
 #' Rcpp evalCpp
 #' @importFrom
-#' stats aggregate ave coef lm model.frame model.response model.matrix plogis
-#' pnorm predict printCoefmat rlogis rnorm update vcov
+#' stats aggregate ave coef lm model.frame model.response plogis pnorm predict
+#' printCoefmat rlogis rnorm vcov
 #' @useDynLib
 #' alpaca, .registration = TRUE
 NULL
