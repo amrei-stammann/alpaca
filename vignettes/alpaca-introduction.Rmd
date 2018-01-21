@@ -23,7 +23,7 @@ $$
 $$
 where the matrix $\mathbf{D}$ arises from dummy encoding of $K$ high-dimensional categorical variables and $\mathbf{X}$ contains the variables of interst. We refer to $\boldsymbol{\beta}$ as the structural parameters whereas $\boldsymbol{\alpha}$ are the so called fixed effects.
 
-Brute force estimation of this kind of models is often restricted to computational limitations. We tackle this problem by providing a fast and memory efficient algorithm based on the combination of the Frisch-Waugh-Lovell theorem and the method of alternating projections (@stammann18). We restrict ourselves to non-linear models since @gaure13 already offers a great package for linear models.
+Brute force estimation of these kind of models is often restricted to computational limitations. We tackle this problem by providing a fast and memory efficient algorithm based on the combination of the Frisch-Waugh-Lovell theorem and the method of alternating projections (@stammann18). We restrict ourselves to non-linear models since @gaure13 already offers a great package for linear models.
 
 # Workflow
 
