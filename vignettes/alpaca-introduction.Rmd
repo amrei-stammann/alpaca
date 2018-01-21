@@ -1,0 +1,118 @@
+---
+title: "alpaca: A package for fitting glm's with high-dimensional $k$-way fixed effects."
+author: "Amrei Stammann, Daniel Czarnowske"
+date: "`r Sys.Date()`"
+output: rmarkdown::pdf_document
+bibliography: ref.bib
+vignette: >
+  %\VignetteIndexEntry{alpaca-introduction}
+  %\VignetteEngine{knitr::rmarkdown}
+  \usepackage[utf8]{inputenc}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(cache=TRUE)
+library(alpaca)
+```
+
+# Introduction
+
+The package is well suited to estimate generalized linear models with a linear predictor of the following form:
+$$
+\boldsymbol{\eta} = \mathbf{Z} \boldsymbol{\gamma} = \mathbf{D} \boldsymbol{\alpha} + \mathbf{X} \boldsymbol{\beta} = \sum_{k=1}^{K} \mathbf{D}_k \boldsymbol{\alpha}_{k} + \mathbf{X} \boldsymbol{\beta} \, ,
+$$
+where the matrix $\mathbf{D}$ arises from dummy encoding of $K$ high-dimensional categorical variables and $\mathbf{X}$ contains the variables of interst. We refer to $\boldsymbol{\beta}$ as the structural parameters whereas $\boldsymbol{\alpha}$ are the so called fixed effects.
+
+Brute force estimation of these kind of models is often restricted to computational limitations. We tackle this problem by providing a fast and memory efficient algorithm based on the combination of the Frisch-Waugh-Lovell theorem and the method of alternating projections (@stammann18). We restrict ourselves to non-linear models since @gaure13 already offers a great package for linear models.
+
+# Workflow
+
+To show how to use the package we start with generating an artificial data set of a two-way fixed effects logit model. The data generating process is as follows:
+$$
+y_{it} = \mathbf{1}[\mathbf{x}_{it}^{\prime} \boldsymbol{\beta} + \alpha_{i} + \gamma_{t} + \epsilon_{it} > 0] \,,
+$$
+where $\mathbf{x}_{it}$ is generated as iid. $\mathcal{N} \sim (\mathbf{0}_{3}, \mathbf{I}_{3 \times 3})$ and $\epsilon_{it}$ is an iid. logistic error term with location zero and scale one. $\alpha_{i}$ and $\gamma_{t}$ are generated as iid. standard normal and $\boldsymbol{\beta} = [1, - 1, 1]^{\prime}$. The function `simData(n, t, seed)` constructs an artificial data set for arbitrary $n$ and $t$.
+
+To compare `feglm()` to the standard `glm()` we generate a data set with $n = 200$ and $t = 100$ and extract the estimates of the structural parameters. For `feglm()` this can be done using the generic function `coef()`.
+```{r}
+n <- 200
+t <- 100
+data <- simData(n = n, t = t, seed = 1805)
+mod.alpaca <- feglm(y ~ x1 + x2 + x3 | i + t, data, family = "logit")
+mod.glm <- glm(y ~ x1 + x2 + x3 + factor(i) + factor(t) + 0, data,
+               family = binomial(link = "logit"))
+beta.mat <- cbind(coef(mod.alpaca), coef(mod.glm)[1:3])
+colnames(beta.mat) <- c("feglm", "glm")
+beta.mat
+```
+
+Other generic functions already implemented are: `fitted()`, `predict()`, `summary()`, and `vcov()`. The standard errors are based on the inverse Hessian at convergence. The estimates of `feglm()` and `glm()` are identical (@stammann18).
+
+Now we want to have a look at the estimates of the fixed effects. By default `glm()` drops the first level of the second category due to perfect collinearity. Thus this level becomes our reference group which means that all remaining coefficients have to be interpreted as difference to the reference group. 
+
+The function `getFEs()` computes the estimated fixed effects from an object returned by `feglm()`. However the underlying routine does not drop any level while solving the system of equations. Thus an estimable function has to be applied to our solution to get meaningful estimates of the fixed effects. See @gaure13 for an extensive treatment of this issue.
+
+In order to reproduce the coefficients of `glm()` we substract the coefficient of the reference group from all remaining coefficients of the second category and add it to all coefficents of the first category.
+```{r}
+alpha.def <- getFEs(mod.alpaca)
+alpha <- alpha.def[- n + 1]
+ref.alpha <- alpha.def[n + 1]
+alpha <- c(alpha[1:n] + ref.alpha, alpha[(n + 1):(n + t - 1)] - ref.alpha)
+alpha.mat <- cbind(alpha, coef(mod.glm)[- (1:3)])
+colnames(alpha.mat) <- c("feglm", "glm")
+head(alpha.mat)
+tail(alpha.mat)
+```
+
+# Computation Time
+
+Taking the simulated data set from the previous section and measuring the computation time shows the superiority of `feglm()` over `glm()` even in quite small samples.
+```{r}
+sec.alpaca <- system.time(mod.alpaca <- feglm(y ~ x1 + x2 + x3 | i + t, data,
+                                              family = "logit"))[[3]]
+sec.glm <- system.time(mod.glm <- glm(y ~ x1 + x2 + x3 + factor(i) + factor(t) + 0,
+                                      data, family = binomial(link = "logit")))[[3]]
+c(alpaca = sec.alpaca, glm = sec.glm)
+```
+
+To get an impression of the performance of `feglm()` we conduct a small simulation study using the data generating process mentioned previously. We consider all combinations of $n$ and $t$ where $n \wedge t \in \{250, 500, 1000, 2000\}$ and measure the average computation time for each combination over 30 replications.
+
+```{r, eval=FALSE}
+n <- c(250, 500, 1000, 2000)
+t <- c(250, 500, 1000, 2000)
+setting <- expand.grid(n, t)
+avg.time <- numeric(nrow(setting))
+for (r in seq(nrow(setting))) {
+  cat("r=", r)
+  data <- simData(setting[r, 1], setting[r, 2], 1805)
+  for (i in seq(30)) {
+    avg.time[r] <- avg.time[r] + system.time({
+      mod <- feglm(y ~ x1 + x2 + x3 | i + t, data, family = "logit")
+      })[[3]]
+  }
+  avg.time[r] <- avg.time[r] / 30.0
+}
+```
+
+```{r, echo=FALSE}
+n <- c(250, 500, 1000, 2000)
+t <- c(250, 500, 1000, 2000)
+sec <- c(0.2995000, 0.6743333, 1.4748333, 2.9317667, 0.6121333, 1.3653667,
+         2.9388333, 6.5363000, 1.3971667, 2.7786000, 6.0359000, 12.7300667,
+         2.7987333, 5.8771000, 12.4189000, 25.6243667)
+time <- cbind(expand.grid(n, t), sec)
+colnames(time) <- c("n", "t", "sec")
+time <- time[order(time[["n"]]), ]
+rownames(time) <- NULL
+knitr::kable(time)
+```
+
+# Appendix
+
+All computations were done on an Intel Core i7-7700 CPU 3.60GHz with 15,6 GiB RAM.
+
+```{r}
+sessionInfo()
+```
+
+# References
