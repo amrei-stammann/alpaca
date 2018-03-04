@@ -36,7 +36,7 @@ Defaults see \code{\link{alpaca.control}}.}
 The function \code{feglm} returns a named list of class \code{"alpaca"}.
 }
 \description{
-\strong{Caution}: Package version 0.1.1 preliminary!
+\strong{Caution}: Package version 0.1.2 preliminary!
 
 \code{feglm} is used to fit fixed effects generalized linear models with many
 high-dimensional fixed effects based on unconditional maximum likelihood.

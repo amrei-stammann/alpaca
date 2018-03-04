@@ -2,7 +2,7 @@
 #' feglm: A function to efficiently estimate glm's with high-dimensional 
 #' \eqn{k}-way fixed effects
 #' @description
-#' \strong{Caution}: Package version 0.1.1 preliminary!
+#' \strong{Caution}: Package version 0.1.2 preliminary!
 #' 
 #' \code{feglm} is used to fit fixed effects generalized linear models with many
 #' high-dimensional fixed effects based on unconditional maximum likelihood.
@@ -94,22 +94,23 @@ feglm <- function(formula = NULL,
   # Needed to ensure that factor variables are correclty dummy encoded.
   # Old:
   # X <- as.matrix(model.matrix(update(formula, . ~ . - 1), data = mf, rhs = 1))
-  X <- as.matrix(model.part(formula, data = mf, rhs = 1L))
+  # X <- as.matrix(model.part(formula, data = mf, rhs = 1L))
+  X <- model.matrix(formula, data = mf, rhs = 1L)[, - 1L, drop = FALSE]
   D <- model.part(formula, data = mf, rhs = 2L)
   
   # Extract names of structural parameters.
   nms.sp <- attr(X, "dimnames")[[2]]
   
   # Check validity of D.
-  if(ncol(D) < 1L) {
+  K <- ncol(D)
+  if(K < 1L) {
     stop("Fixed effects uncorrectly specified.")
   }
   
   # Validity of input argument (beta.start).
   if (!is.null(beta.start)) {
     if (length(beta.start) != ncol(X)) {
-      stop("Length of 'beta.start' has to be equal to the number of structural
-           parameters.")
+      stop("Length of 'beta.start' has to be equal to the number of structural parameters.")
     }
   } else {
     # Changed:
@@ -125,7 +126,7 @@ feglm <- function(formula = NULL,
   
   # Drop perfectly classified observations.
   if (control[["drop.pc"]] == TRUE) {
-    for (k in seq(ncol(D))) {
+    for (k in seq(K)) {
       # Compute group means.
       mean.tab <- aggregate(y ~ D[[k]], FUN = mean)
       
@@ -140,15 +141,15 @@ feglm <- function(formula = NULL,
         idx <- mean.tab[, 1L]
         idx <- D[[k]] %in% idx
         y <- y[idx]
-        X <- as.matrix(X[idx, ])
-        D <- as.data.frame(D[idx, ])
+        X <- X[idx, , drop = FALSE]
+        D <- D[idx, , drop = FALSE]
       } else if (family == "poisson") {
         mean.tab <- mean.tab[mean.tab[, 2L] > 0.0, ]
         idx <- mean.tab[, 1L]
         idx <- D[[k]] %in% idx
         y <- y[idx]
-        X <- as.matrix(X[idx, ])
-        D <- as.data.frame(D[idx, ])
+        X <- X[idx, , drop = FALSE]
+        D <- D[idx, , drop = FALSE]
       }
     }
   }
@@ -170,29 +171,26 @@ feglm <- function(formula = NULL,
   # Validity of input argument (D.alpha.start).
   if (!is.null(D.alpha.start)) {
     if (length(D.alpha.start) != length(y)) {
-      stop("Length of 'D.alpha.start' has to be equal to the number of
-           observations.")
+      stop("Length of 'D.alpha.start' has to be equal to the number of observations.")
     }
   } else {
     # Changed:
     # Better starting values improve convergence of pseudo-demeaning.
     D.alpha.start <- numeric(length(y))
     if (family %in% c("logit", "probit")) {
-      for (k in seq(ncol(D))) {
-        D.alpha.start <- D.alpha.start + log(ave(y, D[, k]) + 0.5 / 2.0) /
-          ncol(D)
+      for (k in seq(K)) {
+        D.alpha.start <- D.alpha.start + log(ave(y, D[, k]) + 0.5 / 2.0) / K
       }
     } else if (family == "poisson") {
-      for (k in seq(ncol(D))) {
+      for (k in seq(K)) {
         # D.alpha.start <- D.alpha.start + log(ave(y, D[, k]) + 0.1)
-        D.alpha.start <- D.alpha.start + log(ave(y, D[, k]) + 0.1) / ncol(D)
+        D.alpha.start <- D.alpha.start + log(ave(y, D[, k]) + 0.1) / K
       }
     }
   }
   
   # Maximize maximum likelihood.
-  mod <- .feglm(y, X, D - 1L, lvls.k, beta.start, D.alpha.start, family.uint,
-                control)
+  mod <- .feglm(y, X, D - 1L, lvls.k, beta.start, D.alpha.start, family.uint, control)
   
   # Modify 'mod'.
   mod[["coefficients"]] <- as.vector(mod[["coefficients"]])
