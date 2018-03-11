@@ -16,7 +16,7 @@ The package can be installed by `devtools::install_github("amrei-stammann/alpaca
 
 ## News
 
-### alpaca v0.1.2 (Release Date: 2018-03-08)
+### alpaca v0.1.3 (Release Date: 2018-03-08)
 
 Changes:
 
