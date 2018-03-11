@@ -2,7 +2,7 @@
 #' feglm: A function to efficiently estimate glm's with high-dimensional 
 #' \eqn{k}-way fixed effects
 #' @description
-#' \strong{Caution}: Package version 0.1.2 preliminary!
+#' \strong{Caution}: Package version 0.1.3 preliminary!
 #' 
 #' \code{feglm} is used to fit fixed effects generalized linear models with many
 #' high-dimensional fixed effects based on unconditional maximum likelihood.
@@ -29,8 +29,8 @@
 #' @param
 #' family the description of the error distribution and link function to be used
 #' in the model. This has to be a character string naming the
-#' model function. The value should be any of \code{"logit"}, \code{"probit"},
-#' or \code{"poisson"}. Default is \code{"logit"}.
+#' model function. The value should be any of \code{"logit"}, \code{"probit"}, 
+#' \code{"poisson"}, or \code{"cloglog"}. Default is \code{"logit"}.
 #' @param
 #' control a named list of parameters for controlling the fitting process.
 #' Defaults see \code{\link{alpaca.control}}.
@@ -52,7 +52,7 @@ feglm <- function(formula = NULL,
                   data = NULL,
                   beta.start = NULL,
                   D.alpha.start = NULL,
-                  family = c("logit", "probit", "poisson"),
+                  family = c("logit", "probit", "poisson", "cloglog"),
                   control = list()) {
   # Validity of input argument (formula).
   if (is.null(formula)) {
@@ -73,7 +73,8 @@ feglm <- function(formula = NULL,
   switch (family,
           logit = family.uint <- 0L,
           probit = family.uint <- 1L,
-          poisson = family.uint <- 2L)
+          poisson = family.uint <- 2L,
+          cloglog = family.uint <- 3L)
   
   # Validity of input argument (control).
   if (!inherits(control, "list")) {
@@ -88,8 +89,25 @@ feglm <- function(formula = NULL,
   mf <- model.frame(formula = formula, data = data)
   nobs.na <- length(attr(mf, "na.action"))
   
-  # Extract data.
+  # Extract model response and ensure it is in line with the choosen model.
   y <- model.response(mf)
+  if (family %in% c("logit", "probit", "cloglog")) {
+    # Transform 'y' and check if the number of levels equals two. 
+    y <- factor(y)
+    if (length(levels(y)) != 2L) {
+      stop("Model response should be binary.")
+    }
+    
+    # Ensure 'y' is 0-1 encoded.
+    y <- as.integer(factor(y)) - 1L
+  } else if (family == "poisson") {
+    # Check if 'y' is positive.
+    if (any(y < 0.0)) {
+      stop("Model response should be positive.")
+    }
+  }
+  
+  # Extract regressors and fixed effects identifier.
   # Bugfix:
   # Needed to ensure that factor variables are correclty dummy encoded.
   # Old:
@@ -131,7 +149,7 @@ feglm <- function(formula = NULL,
       mean.tab <- aggregate(y ~ D[[k]], FUN = mean)
       
       # Drop observations that do not contribute to the loglikelihood.
-      if (family %in% c("logit", "probit")) {
+      if (family %in% c("logit", "probit", "cloglog")) {
         # Bugfix:
         # Dropping perfectly classified observations for binomial models should
         # now work as intended. Thanks to jmboehm@github
@@ -177,7 +195,7 @@ feglm <- function(formula = NULL,
     # Changed:
     # Better starting values improve convergence of pseudo-demeaning.
     D.alpha.start <- numeric(length(y))
-    if (family %in% c("logit", "probit")) {
+    if (family %in% c("logit", "probit", "cloglog")) {
       for (k in seq(K)) {
         D.alpha.start <- D.alpha.start + log(ave(y, D[, k]) + 0.5 / 2.0) / K
       }

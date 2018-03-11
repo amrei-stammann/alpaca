@@ -6,7 +6,7 @@
 \eqn{k}-way fixed effects}
 \usage{
 feglm(formula = NULL, data = NULL, beta.start = NULL,
-  D.alpha.start = NULL, family = c("logit", "probit", "poisson"),
+  D.alpha.start = NULL, family = c("logit", "probit", "poisson", "cloglog"),
   control = list())
 }
 \arguments{
@@ -26,8 +26,8 @@ effects contribution in the linear predictor. Default see \code{Details}.}
 
 \item{family}{the description of the error distribution and link function to be used
 in the model. This has to be a character string naming the
-model function. The value should be any of \code{"logit"}, \code{"probit"},
-or \code{"poisson"}. Default is \code{"logit"}.}
+model function. The value should be any of \code{"logit"}, \code{"probit"}, 
+\code{"poisson"}, or \code{"cloglog"}. Default is \code{"logit"}.}
 
 \item{control}{a named list of parameters for controlling the fitting process.
 Defaults see \code{\link{alpaca.control}}.}
@@ -36,7 +36,7 @@ Defaults see \code{\link{alpaca.control}}.}
 The function \code{feglm} returns a named list of class \code{"alpaca"}.
 }
 \description{
-\strong{Caution}: Package version 0.1.2 preliminary!
+\strong{Caution}: Package version 0.1.3 preliminary!
 
 \code{feglm} is used to fit fixed effects generalized linear models with many
 high-dimensional fixed effects based on unconditional maximum likelihood.

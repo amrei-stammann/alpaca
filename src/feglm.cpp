@@ -156,6 +156,13 @@ arma::vec InverseLink(const arma::vec &keta,
     
     // Safeguard mu.
     mu(arma::find(mu < keps)).fill(keps);
+  } else if (kfamily == 3) {
+    // --- Complementary Log Log ---
+    mu = 1.0 - arma::exp(- arma::exp(keta));
+    
+    // Safeguard mu.
+    mu(arma::find(mu < keps)).fill(keps);
+    mu(arma::find(mu > 1.0 - keps)).fill(1.0 - keps);
   }
   
   return mu;
@@ -173,9 +180,13 @@ arma::vec DetaDmu(const arma::vec &kmu,
   } else if (kfamily == 1) {
     // --- Probit ---
     detadmu = 1.0 / dnorm(qnorm(kmu));
-  } if (kfamily == 2) {
+  } else if (kfamily == 2) {
     // --- Poisson ---
     detadmu = 1.0 / kmu;
+  } else if (kfamily == 3) {
+    // --- Complementary Log Log ---
+    const arma::vec tmp = 1.0 - kmu;
+    detadmu = - 1.0 / (arma::log(tmp) % tmp);
   }
   
   return detadmu;
@@ -187,7 +198,7 @@ arma::vec Variance(const arma::vec &kmu,
   // Compute variance.
   const unsigned int kn = kmu.n_rows;
   arma::vec v(kn);
-  if (kfamily == 0 || kfamily == 1) {
+  if (kfamily == 0 || kfamily == 1 || kfamily == 3) {
     // --- Binomial ---
     v = kmu % (1.0 - kmu);
   } else if(kfamily == 2) {
@@ -298,7 +309,7 @@ double LogLikelihood(const arma::vec &kbeta,
   
   // Compute sum of the loglikelihood.
   double L = 0.0;
-  if (kfamily == 0 || kfamily == 1) {
+  if (kfamily == 0 || kfamily == 1 || kfamily == 3) {
     // --- Binomial ---
     for (unsigned int i = 0 ; i < kn ; ++i) {
       const double kx = ldbinom(ky(i), 1.0, kmu(i));
@@ -329,7 +340,6 @@ double Deviance(const arma::vec &kbeta,
                 const unsigned int kfamily) {
   // Auxiliary variables.
   const unsigned int kn = ky.n_rows;
-  const double keps = std::numeric_limits<double>::epsilon();
   const double kmax = std::numeric_limits<double>::max();
   
   // Compute linear predictor - \eta.
@@ -340,7 +350,7 @@ double Deviance(const arma::vec &kbeta,
   
   // Compute deviance.
  double d = 0.0;
-  if (kfamily == 0 || kfamily == 1) {
+  if (kfamily == 0 || kfamily == 1 || kfamily == 3) {
     // --- Binomial ---
     for (unsigned int i = 0 ; i < kn ; ++i) {
       if (ky(i) == 1.0) {
