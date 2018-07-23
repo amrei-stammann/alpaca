@@ -2,61 +2,70 @@
 % Please edit documentation in R/feglm.R
 \name{feglm}
 \alias{feglm}
-\title{feglm: A function to efficiently estimate glm's with high-dimensional 
-\eqn{k}-way fixed effects}
+\title{Efficiently fit glm's with high-dimensional \eqn{k}-way fixed effects}
 \usage{
-feglm(formula = NULL, data = NULL, beta.start = NULL,
-  D.alpha.start = NULL, family = c("logit", "probit", "poisson", "cloglog"),
-  control = list())
+feglm(formula = NULL, data = NULL, family = binomial(),
+  beta.start = NULL, D.alpha.start = NULL, control = NULL)
 }
 \arguments{
-\item{formula}{an object of class \code{"formula"}: a symbolic description of the
-model to be fitted. \code{formula} must be of type \code{y ~ x | k},
-where the \eqn{k} refers to an identifier of different levels in category
-\eqn{k}.}
+\item{formula}{an object of class \code{"formula"}: a symbolic description of the model to be fitted.
+\code{formula} must be of type \code{y ~ x | k}, where the second part of the formula refers to
+factors to be concentrated out.}
 
-\item{data}{an object of class \code{"data.frame"} containing the variables in the
-model.}
+\item{data}{an object of class \code{"data.frame"} containing the variables in the model.}
 
-\item{beta.start}{an optional vector of starting values used for the structural
-parameters in the linear predictor. Default see \code{Details}.}
+\item{family}{a description of the error distribution and link function to be used in the model. 
+Similiar to \code{glm.fit()} this has to be the result of a call to a family function. Default is
+\code{binomial()}. See \code{\link{family}} for details of family functions.}
 
-\item{D.alpha.start}{an optional vector of starting values used for the fixed
-effects contribution in the linear predictor. Default see \code{Details}.}
+\item{beta.start}{an optional vector of starting values for the structural parameters in the linear 
+predictor. Default is \eqn{\boldsymbol{\beta} = \mathbf{0}}{\beta = 0}.}
 
-\item{family}{the description of the error distribution and link function to be used
-in the model. This has to be a character string naming the
-model function. The value should be any of \code{"logit"}, \code{"probit"}, 
-\code{"poisson"}, or \code{"cloglog"}. Default is \code{"logit"}.}
+\item{D.alpha.start}{an optional vector of starting values for the fixed effects contribution in the
+linear predictor.}
 
-\item{control}{a named list of parameters for controlling the fitting process.
-Defaults see \code{\link{alpaca.control}}.}
+\item{control}{a named list of parameters for controlling the fitting process. See 
+\code{\link{feglm.control}} for details.}
 }
 \value{
-The function \code{feglm} returns a named list of class \code{"alpaca"}.
+The function \code{feglm} returns a named list of class \code{"feglm"}.
 }
 \description{
-\strong{Caution}: Package version 0.1.3 preliminary!
+\code{feglm} can be used to fit generalized linear models with many high-dimensional fixed
+effects. The estimation procedure is based on unconditional maximum likelihood and can be
+interpreted as a \dQuote{pseudo demeaning} approach that combines the work of Gaure (2013) and
+Stammann et. al. (2016). For technical details see Stammann (2018). The routine is well suited
+for large data sets that would be otherwise infeasible to use due to memory limitations.
 
-\code{feglm} is used to fit fixed effects generalized linear models with many
-high-dimensional fixed effects based on unconditional maximum likelihood.
-The algorithm can be interpreted as a pseudo demeaning approach that combines
-the work of Gaure (2013) and Stammann et. al. (2016). For technical details
-see Stammann (2018).
-
-\strong{Remark:} The term fixed effect is used in econometrician's sense of
-having intercepts for each level in each category.
+\strong{Remark:} The term fixed effect is used in econometrician's sense of having intercepts for
+each level in each category.
 }
 \details{
-...
+If \code{feglm()} does not converge this is usually a sign of linear dependence between one or 
+more regressors and a fixed effects category. In this case, you should carefully inspect your
+model specification.
+}
+\examples{
+\dontrun{
+# Generate artificial for logit models
+library(alpaca)
+data <- simGLM(1000L, 200L, 1805L, model = "logit")
+
+# Fit 'feglm()'
+mod <- feglm(y ~ x1 + x2 + x3 | i + j, data)
+summary(mod)
+
+# Recover estimates of fixed effects
+alpha <- getFEs(mod)
+}
 }
 \references{
-Gaure, S. (2013). "OLS with Multiple High Dimensional Category Variables".
-Computational Statistics and Data Analysis. 66.
+Gaure, S. (2013). "OLS with Multiple High Dimensional Category Variables". Computational
+Statistics and Data Analysis. 66.
 
-Stammann, A., F. Heiss, and D. McFadden (2016). 
-"Estimating Fixed Effects Logit Models with Large Panel Data". Working paper.
+Stammann, A., F. Heiss, and D. McFadden (2016). "Estimating Fixed Effects Logit Models with Large
+Panel Data". Working paper.
 
-Stammann, A. (2018). "Fast and Feasible Estimation of Generalized Linear
-Models with High-Dimensional k-Way Fixed Effects". Working Paper.
+Stammann, A. (2018). "Fast and Feasible Estimation of Generalized Linear Models with
+High-Dimensional k-Way Fixed Effects". Working Paper.
 }
