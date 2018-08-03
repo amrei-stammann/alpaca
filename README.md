@@ -11,7 +11,7 @@ This package is well suited to estimate so called "pseudo poisson maximum likeli
 
 If you have any suggestions for improvements or questions, feel free to contact me (Amrei.Stammann@hhu.de).
 
-The package can be installed by `devtools::install_github("amrei-stammann/alpaca", build_vignettes = TRUE)`.
+The package is also available on CRAN https://cran.r-project.org/web/packages/alpaca/index.html.
 
 ## News
 
