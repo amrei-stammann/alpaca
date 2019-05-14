@@ -18,8 +18,8 @@ The package is also available on CRAN https://cran.r-project.org/web/packages/al
 Changes:
 
 * Added `feglm.nb()` for negative binomial models.
-* Added post-estimation routine `biasCorr()` for analytical bias-corrections (currently restriced to logit and probit models with two-way error component).
-* Added post-estimation routine `getAPEs()` to estimate average partial effects and the corresponding standard errors (currently restriced to logit and probit models with two-way error component).
+* Added post-estimation routine `biasCorr()` for analytical bias-corrections (currently restricted to logit and probit models with two-way error component).
+* Added post-estimation routine `getAPEs()` to estimate average partial effects and the corresponding standard errors (currently restricted to logit and probit models with two-way error component).
 * `getFEs()` now returns a list of named vectors. Each vector refers to one fixed effects category.
 * Changed stopping criteria to the one used by `glm()`.
 * Vignettes revised.
