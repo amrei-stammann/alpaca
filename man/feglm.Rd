@@ -5,33 +5,35 @@
 \title{Efficiently fit glm's with high-dimensional \eqn{k}-way fixed effects}
 \usage{
 feglm(formula = NULL, data = NULL, family = binomial(),
-  beta.start = NULL, D.alpha.start = NULL, control = NULL)
+  beta.start = NULL, eta.start = NULL, control = NULL)
 }
 \arguments{
 \item{formula}{an object of class \code{"formula"}: a symbolic description of the model to be fitted.
 \code{formula} must be of type \code{y ~ x | k}, where the second part of the formula refers to
-factors to be concentrated out.}
+factors to be concentrated out. It is also possible to pass additional variables to 
+\code{\link{feglm}} (e.g. to cluster standard errors). This can be done by specifying the third 
+part of the formula: \code{y ~ x | k | add}.}
 
 \item{data}{an object of class \code{"data.frame"} containing the variables in the model.}
 
 \item{family}{a description of the error distribution and link function to be used in the model. 
-Similiar to \code{glm.fit()} this has to be the result of a call to a family function. Default is
-\code{binomial()}. See \code{\link{family}} for details of family functions.}
+Similiar to \code{\link[stats]{glm.fit}} this has to be the result of a call to a family 
+function. Default is \code{binomial()}. See \code{\link[stats]{family}} for details of family 
+functions.}
 
 \item{beta.start}{an optional vector of starting values for the structural parameters in the linear 
 predictor. Default is \eqn{\boldsymbol{\beta} = \mathbf{0}}{\beta = 0}.}
 
-\item{D.alpha.start}{an optional vector of starting values for the fixed effects contribution in the
-linear predictor.}
+\item{eta.start}{an optional vector of starting values for the linear predictor.}
 
 \item{control}{a named list of parameters for controlling the fitting process. See 
-\code{\link{feglm.control}} for details.}
+\code{\link{feglmControl}} for details.}
 }
 \value{
-The function \code{feglm} returns a named list of class \code{"feglm"}.
+The function \code{\link{feglm}} returns a named list of class \code{"feglm"}.
 }
 \description{
-\code{feglm} can be used to fit generalized linear models with many high-dimensional fixed
+\code{\link{feglm}} can be used to fit generalized linear models with many high-dimensional fixed
 effects. The estimation procedure is based on unconditional maximum likelihood and can be
 interpreted as a \dQuote{pseudo demeaning} approach that combines the work of Gaure (2013) and
 Stammann et. al. (2016). For technical details see Stammann (2018). The routine is well suited
@@ -41,31 +43,28 @@ for large data sets that would be otherwise infeasible to use due to memory limi
 each level in each category.
 }
 \details{
-If \code{feglm()} does not converge this is usually a sign of linear dependence between one or 
-more regressors and a fixed effects category. In this case, you should carefully inspect your
-model specification.
+If \code{\link{feglm}} does not converge this is usually a sign of linear dependence between 
+one or more regressors and a fixed effects category. In this case, you should carefully inspect 
+your model specification.
 }
 \examples{
-\dontrun{
-# Generate artificial for logit models
+\donttest{
+# Generate an artificial data set for logit models
 library(alpaca)
-data <- simGLM(1000L, 200L, 1805L, model = "logit")
+data <- simGLM(1000L, 20L, 1805L, model = "logit")
 
 # Fit 'feglm()'
 mod <- feglm(y ~ x1 + x2 + x3 | i + t, data)
 summary(mod)
-
-# Recover estimates of fixed effects
-alpha <- getFEs(mod)
 }
 }
 \references{
 Gaure, S. (2013). "OLS with Multiple High Dimensional Category Variables". Computational
-Statistics and Data Analysis. 66.
+Statistics and Data Analysis, 66.
 
 Stammann, A., F. Heiss, and D. McFadden (2016). "Estimating Fixed Effects Logit Models with Large
 Panel Data". Working paper.
 
 Stammann, A. (2018). "Fast and Feasible Estimation of Generalized Linear Models with
-High-Dimensional k-Way Fixed Effects". Working Paper.
+High-Dimensional k-Way Fixed Effects". ArXiv e-prints.
 }

@@ -4,32 +4,34 @@
 \alias{summary.feglm}
 \title{Summarizing models of class \code{feglm}}
 \usage{
-\method{summary}{feglm}(object, type = c("empirical.hessian", "outer.product",
-  "sandwich", "clustered"), cluster.vars = NULL, ...)
+\method{summary}{feglm}(object, type = c("hessian", "outer.product",
+  "sandwich", "clustered"), cluster = NULL, cluster.vars = NULL, ...)
 }
 \arguments{
-\item{object}{an object of class \code{feglm}.}
+\item{object}{an object of class \code{"feglm"}.}
 
-\item{type}{the type of covariance estimate required. \code{"empirical.hessian"} refers to the inverse
-of the negative Hessian after convergence and is the default option. \code{"outer.product"} is
-the outer-product-of-the-gradient estimator, \code{"sandwich"} is the sandwich estimator 
-(sometimes also refered as robust estimator), and \code{"clustered"} computes a clustered
-covariance matrix given some cluster variables.}
+\item{type}{the type of covariance estimate required. \code{"hessian"} refers to the inverse
+of the negative expected Hessian after convergence and is the default option. 
+\code{"outer.product"} is the outer-product-of-the-gradient estimator, 
+\code{"sandwich"} is the sandwich estimator (sometimes also refered as robust estimator), 
+and \code{"clustered"} computes a clustered covariance matrix given some cluster variables.}
 
-\item{cluster.vars}{a character or vector of characters indicating the names of the cluster variables in
-the data set.}
+\item{cluster}{a symbolic description indicating the clustering of observations.}
+
+\item{cluster.vars}{deprecated; use \code{cluster} instead.}
 
 \item{...}{other arguments.}
 }
 \value{
-Returns an object of class \code{summary.feglm} which is a list of summary statistics of
+Returns an object of class \code{"summary.feglm"} which is a list of summary statistics of
 \code{object}.
 }
 \description{
-Summary statistics for objects of class \code{feglm}.
+Summary statistics for objects of class \code{"feglm"}.
 }
 \details{
-Multi-way clustering is done using the algorithm of Cameron, Gelbach, and Miller (2011).
+Multi-way clustering is done using the algorithm of Cameron, Gelbach, and Miller (2011). An 
+example is provided in the vignette "Replicating an Empirical Example of International Trade".
 }
 \references{
 Cameron, C., J. Gelbach, and D. Miller (2011). "Robust Inference With Multiway Clustering".

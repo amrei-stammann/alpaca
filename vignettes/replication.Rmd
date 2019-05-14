@@ -1,0 +1,199 @@
+---
+title: "Replicating an Empirical Example of International Trade"
+output: rmarkdown::html_vignette
+bibliography: lit.bib
+vignette: >
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteIndexEntry{Replicating an Empirical Example of International Trade}
+  %\VignetteEncoding{UTF-8}
+---
+
+
+## Introduction
+
+In econometrics, fixed effects models are popular to control for unobserved heterogeneity in data sets with a panel structure. In non-linear models this is usually done by including a dummy variable for each level of a fixed effects category. This approach can quickly become infeasible if the number of levels and/or fixed effects categories increases (either due to memory or time limitations).
+
+One well known example where those limits take place are structural gravity models of trade. In order to demonstrate the capablilities of `feglm()` we replicate parts of @lwyz19 who themselves re-asseses @gr16. Our example is based on a panel data set of 2,973,168 bilateral trade flows. Estimating a theory consistent gravity model with this data set requires to specify a three-way error component with 56,608 levels.
+
+## Data preparation
+
+The data set is available either from [Andrew Rose's website][1] or from [sciencedirect][2]. We use the same variable names as @gr16 such that we are able to compare our summary statistics with the ones provided in their *Stata* log-files.
+
+[1]: http://faculty.haas.berkeley.edu/arose/RecRes.htm
+[2]: https://www.sciencedirect.com/science/article/pii/S0014292116300630#ec0005
+
+```{r, eval = FALSE}
+# Import the data set
+library(haven)
+library(data.table)
+cudata <- read_dta("dataaxj1.dta")
+cudata <- as.data.table(cudata)
+
+# Subsetting relevant variables
+var.nms <- c("exp1to2", "custrict11", "ldist", "comlang", "border", "regional",
+             "comcol", "curcol", "colony", "comctry", "cuwoemu", "emu", "cuc",
+             "cty1", "cty2", "year", "pairid")
+cudata <- cudata[, ..var.nms]
+
+# Generate identifiers required for structural gravity
+cudata[, pairid := factor(pairid)]
+cudata[, exp.time := interaction(cty1, year)]
+cudata[, imp.time := interaction(cty2, year)]
+
+# Generate dummies for disaggregated currency unions
+cudata[, cuau := as.integer(cuc == "au")]
+cudata[, cube := as.integer(cuc == "be")]
+cudata[, cuca := as.integer(cuc == "ca")]
+cudata[, cucf := as.integer(cuc == "cf")]
+cudata[, cucp := as.integer(cuc == "cp")]
+cudata[, cudk := as.integer(cuc == "dk")]
+cudata[, cuea := as.integer(cuc == "ea")]
+cudata[, cuec := as.integer(cuc == "ec")]
+cudata[, cuem := as.integer(cuc == "em")]
+cudata[, cufr := as.integer(cuc == "fr")]
+cudata[, cugb := as.integer(cuc == "gb")]
+cudata[, cuin := as.integer(cuc == "in")]
+cudata[, cuma := as.integer(cuc == "ma")]
+cudata[, cuml := as.integer(cuc == "ml")]
+cudata[, cunc := as.integer(cuc == "nc")]
+cudata[, cunz := as.integer(cuc == "nz")]
+cudata[, cupk := as.integer(cuc == "pk")]
+cudata[, cupt := as.integer(cuc == "pt")]
+cudata[, cusa := as.integer(cuc == "sa")]
+cudata[, cusp := as.integer(cuc == "sp")]
+cudata[, cuua := as.integer(cuc == "ua")]
+cudata[, cuus := as.integer(cuc == "us")]
+cudata[, cuwa := as.integer(cuc == "wa")]
+cudata[, cuwoo := custrict11]
+cudata[cuc %in% c("em", "au", "cf", "ec", "fr", "gb", "in", "us"), cuwoo := 0L]
+
+# Set missing trade flows to zero
+cudata[is.na(exp1to2), exp1to2 := 0.0]
+```
+
+
+## Some replications
+
+After preparing the data, we show how to replicate column 3 of table 2 in @lwyz19. In addition to coefficients and robust standard errors, the authors also report standard errors clustered by exporter, importer, and time.
+
+If we want `feglm()` to report standard errors that are clustered by variables, which are not already part of the model itself, we have to additionally provide them using the third part of the `formula` interface. In this example, we have to additionally add identifiers for exporters (`cty1`), importers (`cty2`), and time (`year`). 
+
+First we report robust standard errors indicated by the option `"sandwich"` in `summary()`.
+```{r, eval = FALSE}
+mod <- feglm(exp1to2 ~ emu + cuwoo + cuau + cucf + cuec + cufr + cugb + cuin + cuus +
+               regional + curcol | exp.time + imp.time + pairid | cty1 + cty2 + year, cudata,
+             family = poisson())
+summary(mod, "sandwich")
+```
+
+```{r, eval = FALSE}
+## poisson - log link
+## 
+## exp1to2 ~ emu + cuwoo + cuau + cucf + cuec + cufr + cugb + cuin + 
+##     cuus + regional + curcol | exp.time + imp.time + pairid | 
+##     cty1 + cty2 + year
+## 
+## Estimates:
+##            Estimate Std. error z value Pr(> |z|)    
+## emu       0.0488950  0.0006057  80.722   < 2e-16 ***
+## cuwoo     0.7659882  0.0047822 160.176   < 2e-16 ***
+## cuau      0.3844686  0.0562134   6.839  7.95e-12 ***
+## cucf     -0.1256085  0.0231247  -5.432  5.58e-08 ***
+## cuec     -0.8773179  0.0234656 -37.387   < 2e-16 ***
+## cufr      2.0957255  0.0048882 428.730   < 2e-16 ***
+## cugb      1.0599574  0.0021330 496.925   < 2e-16 ***
+## cuin      0.1697449  0.0068729  24.698   < 2e-16 ***
+## cuus      0.0183233  0.0025739   7.119  1.09e-12 ***
+## regional  0.1591810  0.0003433 463.662   < 2e-16 ***
+## curcol    0.3868821  0.0022466 172.208   < 2e-16 ***
+## ---
+## Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+## 
+## residual deviance= 35830779,
+## null deviance= 2245707302,
+## n= 1610165, l= [11227, 11277, 34104]
+## 
+## ( 1363003 observation(s) deleted due to perfect classification )
+## 
+## Number of Fisher Scoring Iterations: 13
+```
+
+We observe that roughly 1,4 million observations do not contribute to the identification of the structural parameters and we end up with roughly 1,6 million observations and 57,000 fixed effects.
+
+Replicating the clustered standard errors is straightforward. We simply have to change the option to `"clustered"` and provide `summary` with the requested cluster dimensions.
+```{r, eval = FALSE}
+summary(mod, "clustered", cluster = ~ cty1 + cty2 + year)
+```
+
+```{r, eval = FALSE}
+## poisson - log link
+## 
+## exp1to2 ~ emu + cuwoo + cuau + cucf + cuec + cufr + cugb + cuin + 
+##     cuus + regional + curcol | exp.time + imp.time + pairid | 
+##     cty1 + cty2 + year
+## 
+## Estimates:
+##          Estimate Std. error z value Pr(> |z|)    
+## emu       0.04890    0.09455   0.517   0.60507    
+## cuwoo     0.76599    0.24933   3.072   0.00213 ** 
+## cuau      0.38447    0.22355   1.720   0.08546 .  
+## cucf     -0.12561    0.35221  -0.357   0.72137    
+## cuec     -0.87732    0.29493  -2.975   0.00293 ** 
+## cufr      2.09573    0.30625   6.843  7.75e-12 ***
+## cugb      1.05996    0.23766   4.460  8.19e-06 ***
+## cuin      0.16974    0.30090   0.564   0.57267    
+## cuus      0.01832    0.05092   0.360   0.71898    
+## regional  0.15918    0.07588   2.098   0.03593 *  
+## curcol    0.38688    0.15509   2.495   0.01261 *  
+## ---
+## Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+## 
+## residual deviance= 35830779,
+## null deviance= 2245707302,
+## n= 1610165, l= [11227, 11277, 34104]
+## 
+## ( 1363003 observation(s) deleted due to perfect classification )
+## 
+## Number of Fisher Scoring Iterations: 13
+```
+
+
+## Testing linear restrictions
+
+Our package is also compatible with `linearHypothesis()` of the `car` package. In the next example we show how to test if all currency union effects except being in the EMU are jointly different from zero using a Wald test based on a clustered covariance matrix.
+```{r, eval = FALSE}
+library(car)
+cus <- c("cuwoo", "cuau", "cucf", "cuec", "cufr", "cugb", "cuin", "cuus")
+linearHypothesis(mod, cus, vcov. = vcov(mod, "clustered", cluster = ~ cty1 + cty2 + year))
+```
+
+
+```{r, eval = FALSE}
+## Linear hypothesis test
+## 
+## Hypothesis:
+## cuwoo = 0
+## cuau = 0
+## cucf = 0
+## cuec = 0
+## cufr = 0
+## cugb = 0
+## cuin = 0
+## cuus = 0
+## 
+## Model 1: restricted model
+## Model 2: exp1to2 ~ emu + cuwoo + cuau + cucf + cuec + cufr + cugb + cuin + 
+##     cuus + regional + curcol | exp.time + imp.time + pairid | 
+##     cty1 + cty2 + year
+## 
+## Note: Coefficient covariance matrix supplied.
+## 
+##   Df  Chisq Pr(>Chisq)    
+## 1                         
+## 2  8 96.771  < 2.2e-16 ***
+## ---
+## Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+```
+
+
+## References

@@ -7,17 +7,17 @@
 \method{coef}{feglm}(object, ...)
 }
 \arguments{
-\item{object}{an object of class \code{feglm}.}
+\item{object}{an object of class \code{"feglm"}.}
 
 \item{...}{other arguments.}
 }
 \value{
-The function \code{coef.feglm} returns a named vector of estimates refering to the structural
+The function \code{\link{coef.feglm}} returns a named vector of estimates of the structural 
 parameters.
 }
 \description{
-\code{coef.feglm} is a generic function which extracts estimates of the structural parameters
-from objects returned by \code{feglm}.
+\code{\link{coef.feglm}} is a generic function which extracts estimates of the structural parameters
+from objects returned by \code{\link{feglm}}.
 }
 \seealso{
 \code{\link{feglm}}

@@ -1,5 +1,5 @@
 #' @title
-#' Generate an artificial data set for some GLM's with 2-way fixed effects
+#' Generate an artificial data set for some GLM's with two-way fixed effects
 #' @description
 #' Constructs an artificial data set with \eqn{n} cross-sectional units observed for \eqn{t} time
 #' periods for logit, poisson, or gamma models. The \dQuote{true} linear predictor
@@ -12,7 +12,7 @@
 #' \eqn{\gamma_{t}}{\gamma}) are generated as iid. standard normal and the structural parameters are
 #' set to \eqn{\boldsymbol{\beta} = [1, - 1, 1]^{\prime}}{\beta = [1, - 1, 1]'}.
 #' 
-#' \strong{Note:} The gamma model refers to the Gamma family with log link.
+#' \strong{Note:} The poisson and gamma model are based on the logarithmic link function.
 #' @param
 #' n a strictly positive integer equal to the number of cross-sectional units.
 #' @param
@@ -22,7 +22,7 @@
 #' @param
 #' model a string equal to \code{"logit"}, \code{"poisson"}, or \code{"gamma"}.
 #' @return
-#' The function \code{simGLM} returns a data.frame with 6 variables.
+#' The function \code{\link{simGLM}} returns a data.frame with 6 variables.
 #' @seealso
 #' \code{\link{feglm}}
 #' @export
@@ -35,7 +35,7 @@ simGLM <- function(n     = NULL,
     stop("'n' has to be specified.")
   } else {
     if (n < 1L) {
-      stop("Number of cross-sectional units should be at least one.")
+      stop("Number of cross-sectional units should be at least one.", call. = FALSE)
     }
     n <- as.integer(n)
   }
@@ -45,17 +45,17 @@ simGLM <- function(n     = NULL,
     stop("'t' has to be specified.")
   } else {
     if (t < 1L) {
-      stop("Number of time periods should be at least one.")
+      stop("Number of time periods should be at least one.", call. = FALSE)
     }
     t <- as.integer(t)
   }
   
   # Validity check 'seed'
   if (is.null(seed)) {
-    stop("'seed' has to be specified.")
+    stop("'seed' has to be specified.", call. = FALSE)
   } else {
     if (seed < 0L) {
-      stop("'seed' has to be a positive integer.")
+      stop("'seed' has to be a positive integer.", call. = FALSE)
     }
     seed <- as.integer(seed)
   }
@@ -80,5 +80,5 @@ simGLM <- function(n     = NULL,
   }
   
   # Return data.frame
-  data.frame(i = rep(seq(n), each = t), t = rep(seq(t), n), y, X)
+  data.frame(i = rep(seq.int(n), each = t), t = rep.int(seq.int(t), n), y, X)
 }

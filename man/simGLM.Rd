@@ -2,10 +2,10 @@
 % Please edit documentation in R/simGLM.R
 \name{simGLM}
 \alias{simGLM}
-\title{Generate an artificial data set for some GLM's with 2-way fixed effects}
+\title{Generate an artificial data set for some GLM's with two-way fixed effects}
 \usage{
-simGLM(n = NULL, t = NULL, seed = NULL, model = c("logit", "poisson",
-  "gamma"))
+simGLM(n = NULL, t = NULL, seed = NULL, model = c("logit",
+  "poisson", "gamma"))
 }
 \arguments{
 \item{n}{a strictly positive integer equal to the number of cross-sectional units.}
@@ -17,7 +17,7 @@ simGLM(n = NULL, t = NULL, seed = NULL, model = c("logit", "poisson",
 \item{model}{a string equal to \code{"logit"}, \code{"poisson"}, or \code{"gamma"}.}
 }
 \value{
-The function \code{simGLM} returns a data.frame with 6 variables.
+The function \code{\link{simGLM}} returns a data.frame with 6 variables.
 }
 \description{
 Constructs an artificial data set with \eqn{n} cross-sectional units observed for \eqn{t} time
@@ -31,7 +31,7 @@ Both parameter refering to the unobserved heterogeneity (\eqn{\alpha_{i}}{\alpha
 \eqn{\gamma_{t}}{\gamma}) are generated as iid. standard normal and the structural parameters are
 set to \eqn{\boldsymbol{\beta} = [1, - 1, 1]^{\prime}}{\beta = [1, - 1, 1]'}.
 
-\strong{Note:} The gamma model refers to the Gamma family with log link.
+\strong{Note:} The poisson and gamma model are based on the logarithmic link function.
 }
 \seealso{
 \code{\link{feglm}}

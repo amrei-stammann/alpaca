@@ -7,7 +7,7 @@
 \method{predict}{feglm}(object, type = c("link", "response"), ...)
 }
 \arguments{
-\item{object}{an object of class \code{feglm}.}
+\item{object}{an object of class \code{"feglm"}.}
 
 \item{type}{the type of prediction required. \code{"link"} is on the scale to the linear predictor
 whereas \code{"response"} is on the scale of the response variable. Default is \code{"link"}.}
@@ -15,11 +15,11 @@ whereas \code{"response"} is on the scale of the response variable. Default is \
 \item{...}{other arguments.}
 }
 \value{
-The function \code{predict.feglm} returns a vector of predictions.
+The function \code{\link{predict.feglm}} returns a vector of predictions.
 }
 \description{
-\code{predict.feglm} is a generic function which obtains predictions from an object returned by
-\code{feglm}.
+\code{\link{predict.feglm}} is a generic function which obtains predictions from an object 
+returned by \code{\link{feglm}}.
 }
 \seealso{
 \code{\link{feglm}}

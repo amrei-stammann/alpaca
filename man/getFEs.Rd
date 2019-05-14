@@ -4,18 +4,19 @@
 \alias{getFEs}
 \title{Efficiently recover estimates of the fixed effects after fitting \code{feglm}}
 \usage{
-getFEs(object, alpha.tol = 1e-08)
+getFEs(object = NULL, alpha.tol = 1e-08)
 }
 \arguments{
 \item{object}{an object of class \code{"feglm"}.}
 
 \item{alpha.tol}{tolerance level for the stopping condition. The algorithm is stopped in iteration
-\eqn{i} if \eqn{\lvert\boldsymbol{\alpha}_{i} - \boldsymbol{\alpha}_{i - 1}\rvert_{2} < 
-\text{tol} \lvert\boldsymbol{\alpha}_{i - 1}\rvert_{2}}{||\Delta \alpha|| < tol ||\alpha_old||}.
+\eqn{i} if \eqn{||\boldsymbol{\alpha}_{i} - \boldsymbol{\alpha}_{i - 1}||_{2} < 
+tol ||\boldsymbol{\alpha}_{i - 1}||_{2}}{||\Delta \alpha|| < tol ||\alpha_old||}.
 Default is \code{1.0e-08}.}
 }
 \value{
-The function \code{getFEs} returns a named vector of estimated fixed effects.
+The function \code{\link{getFEs}} returns a named list containing named vectors of estimated 
+fixed effects.
 }
 \description{
 Recover estimates of the fixed effects by alternating between the normal equations of the fixed 
@@ -31,7 +32,7 @@ Gaure, S. (n. d.). "Multicollinearity, identification, and estimable
 functions". Unpublished.
 
 Stammann, A. (2018). "Fast and Feasible Estimation of Generalized Linear Models with 
-High-Dimensional k-way Fixed Effects". Working Paper.
+High-Dimensional k-way Fixed Effects". ArXiv e-prints.
 }
 \seealso{
 \code{\link{feglm}}

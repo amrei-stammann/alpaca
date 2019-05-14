@@ -7,7 +7,7 @@
 \method{print}{feglm}(x, digits = max(3L, getOption("digits") - 3L), ...)
 }
 \arguments{
-\item{x}{an object of class \code{feglm}.}
+\item{x}{an object of class \code{"feglm"}.}
 
 \item{digits}{unsigned integer indicating the number of decimal places. Default is 
 \code{max(3L, getOption("digits") - 3L)}.}
@@ -15,8 +15,8 @@
 \item{...}{other arguments.}
 }
 \description{
-\code{print.feglm} is a generic function which displays some minimal information from objects
-returned by \code{feglm}.
+\code{\link{print.feglm}} is a generic function which displays some minimal information from 
+objects returned by \code{\link{feglm}}.
 }
 \seealso{
 \code{\link{feglm}}
