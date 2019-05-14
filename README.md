@@ -3,9 +3,7 @@
 ## Info
 An R-package for fitting glm's with high-dimensional k-way fixed effects.
 
-This R-package is based on the working paper "Fast and Feasible Estimation of Generalized Linear Models with High-Dimensional k-way Fixed Effects" (Stammann, 2018), https://arxiv.org/abs/1707.01815. A special Newton-Raphson pseudo-demeaning algorithm is implemented, such that the estimation of glm's with high-dimensional fixed effects becomes feasible. 
-
-This version of the package is able to estimate the entire glm family with high-dimensional k-way fixed effects (excluding quasi families and the linear model).
+Provides a routine to concentrate out factors with many levels during the optimization of the log-likelihood function of the corresponding generalized linear model (glm). The package is based on the algorithm proposed by Stammann (2018) [https://arxiv.org/abs/1707.01815] and is restricted to glm's that are based on maximum likelihood estimation and non-linear. It also offers an efficient algorithm to recover estimates of the fixed effects in a post-estimation routine and includes robust and multi-way clustered standard errors. Further the package provides an analytical bias-correction for binary choice models (logit and probit) derived by Fernandez-Val and Weidner (2016).
 
 This package is well suited to estimate so called "pseudo poisson maximum likelihood" (PPML) models with high-dimensional fixed effects that are commonly used in the international trade literature (structural gravity models). See the empirical example in Stammann (2018) and the vignettes.
 
@@ -14,6 +12,17 @@ If you have any suggestions for improvements or questions, feel free to contact 
 The package is also available on CRAN https://cran.r-project.org/web/packages/alpaca/index.html.
 
 ## News
+
+### alpaca v0.3 (Release Date: 2019-05-14)
+
+Changes:
+
+* Added `feglm.nb()` for negative binomial models.
+* Added post-estimation routine `biasCorr()` for analytical bias-corrections (currently restriced to logit and probit models with two-way error component).
+* Added post-estimation routine `getAPEs()` to estimate average partial effects and the corresponding standard errors (currently restriced to logit and probit models with two-way error component).
+* `getFEs()` now returns a list of named vectors. Each vector refers to one fixed effects category.
+* Changed stopping criteria to the one used by `glm()`.
+* Vignettes revised.
 
 ### alpaca v0.2 (Release Date: 2018-07-23)
 
