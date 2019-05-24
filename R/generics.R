@@ -84,7 +84,7 @@ fitted.feglm <- function(object, ...) {
 #' @param 
 #' object an object of class \code{"feglm"}.
 #' @param
-#' type the type of prediction required. \code{"link"} is on the scale to the linear predictor
+#' type the type of prediction required. \code{"link"} is on the scale of the linear predictor
 #' whereas \code{"response"} is on the scale of the response variable. Default is \code{"link"}.
 #' @param 
 #' ... other arguments.
@@ -206,10 +206,10 @@ print.summary.feglm <- function(x, digits = max(3L, getOption("digits") - 3L), .
       cat("(", x[["nobs"]][["nobs.pc"]], "observation(s) deleted due to perfect classification )\n")
     }
   }
-  cat("\nNumber of Fisher Scoring Iterations:", x[["iter"]])
+  cat("\nNumber of Fisher Scoring Iterations:", x[["iter"]], "\n")
   if (!is.null(x[["theta"]])) {
-    cat("\n\ntheta= ", round(x[["theta"]], 3L),
-        ", std. error= ", round(attr(x[["theta"]], "SE"), 3L), sep = "")
+    cat("\ntheta= ", round(x[["theta"]], 3L),
+        ", std. error= ", round(attr(x[["theta"]], "SE"), 3L), "\n", sep = "")
   }
 }
 

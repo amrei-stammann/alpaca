@@ -6,12 +6,12 @@ citEntry(entry = "Article",
   author       = as.person("Amrei Stammann"),
   journal      = "ArXiv e-prints",
   year         = "2018",
-  url          = "https://arxiv.org/pdf/1707.01815v2.pdf",
+  url          = "https://arxiv.org/pdf/1707.01815.pdf",
 
   textVersion  =
   paste("Stammann, Amrei (2018).",
         "Fast and Feasible Estimation of Generalized Linear Models with High-Dimensional
         k-way Fixed Effects.",
         "ArXiv e-prints.",
-        "URL https://arxiv.org/pdf/1707.01815v2.pdf.")
+        "URL https://arxiv.org/pdf/1707.01815.pdf.")
 )

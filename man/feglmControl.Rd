@@ -52,7 +52,7 @@ observations and does not affect the estimates. Default is \code{TRUE}.}
 
 \item{step.tol}{depreacted; termination conditions is now similar to \code{\link[stats]{glm}}.}
 
-\item{...}{arguments passed to the deprecated function \code{\link{feglmControl}}.}
+\item{...}{arguments passed to the deprecated function \code{\link{feglm.control}}.}
 }
 \value{
 The function \code{\link{feglmControl}} returns a named list of control 

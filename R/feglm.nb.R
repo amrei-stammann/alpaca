@@ -4,19 +4,11 @@
 #' \code{feglm.nb} can be used to fit negative binomial generalized linear models with many 
 #' high-dimensional fixed effects (see \code{\link{feglm}}).
 #' @param
-#' formula see \code{\link{feglm}}.
-#' @param
-#' data see \code{\link{feglm}}.
-#' @param
-#' beta.start see \code{\link{feglm}}.
-#' @param
-#' eta.start see \code{\link{feglm}}.
+#' formula,data,beta.start,eta.start,control see \code{\link{feglm}}.
 #' @param
 #' init.theta an optional initial value for the theta parameter (see \code{\link[MASS]{glm.nb}}).
 #' @param
 #' link the link function. Must be one of \code{"log"}, \code{"sqrt"}, or \code{"identity"}.
-#' @param
-#' control see \code{\link{feglm}}.
 #' @details
 #' If \code{feglm.nb} does not converge this is usually a sign of linear dependence between one or 
 #' more regressors and a fixed effects category. In this case, you should carefully inspect your
@@ -71,7 +63,6 @@ feglm.nb <- function(formula       = NULL,
   
   # Update formula and do further validity check
   formula <- Formula(formula)
-  lhs <- attr(formula, "lhs")[[1L]]
   if (length(formula)[[2L]] < 2L || length(formula)[[1L]] > 1L) {
     stop("'formula' uncorrectly specified.", call. = FALSE)
   }
@@ -80,12 +71,13 @@ feglm.nb <- function(formula       = NULL,
   if (is.null(attr(data, "terms"))) {
     data <- suppressWarnings(model.frame(formula, data))
   }
-  data <- as.data.table(data)
+  setDT(data)
+  lhs <- names(data)[[1L]]
   nobs.full <- nrow(data)
   nobs.na <- length(attr(data, "na.action"))
   
   # Ensure that model response is in line with the choosen model
-  if (data[, any(eval(lhs) < 0.0)]) {
+  if (data[, any(get(lhs) < 0.0)]) {
     stop("Model response has to be positive.", call. = FALSE)
   }
   
@@ -98,7 +90,7 @@ feglm.nb <- function(formula       = NULL,
     trms <- attr(data, "terms") # Store terms; required for model matrix
     tmp.var <- tempVar(data)
     for (i in k.vars) {
-      data[, (tmp.var) := mean(eval(lhs)), by = eval(i)]
+      data[, (tmp.var) := mean(get(lhs)), by = eval(i)]
       data <- data[get(tmp.var) > 0.0]
       data[, (tmp.var) := NULL]
     }
@@ -178,7 +170,7 @@ feglm.nb <- function(formula       = NULL,
     tmp.var <- tempVar(data)
     eta <- numeric(nobs[[4L]])
     for (i in k.vars) {
-      data[, (tmp.var) := mean(eval(lhs)), by = eval(i)]
+      data[, (tmp.var) := mean(get(lhs)), by = eval(i)]
       eta <- eta + family[["linkfun"]](data[[tmp.var]] + 0.1) / k
       data[, (tmp.var) := NULL]
     }
@@ -205,6 +197,7 @@ feglm.nb <- function(formula       = NULL,
   
   
   # Alternate between fitting a glm and \theta
+  conv <- FALSE
   for (iter in seq.int(control[["iter.max"]])) {
     # Fit negative binomial model
     dev.old <- dev
@@ -218,7 +211,7 @@ feglm.nb <- function(formula       = NULL,
     
     # Progress information
     if (control[["trace"]]) {
-      cat("Deviance =", round(dev, 2L), "Iterations -", iter, "\n")
+      cat("Deviance=", round(dev, 2L), "- Outer Iteration=", iter, "\n")
     }
     
     # Check termination condition
@@ -226,10 +219,15 @@ feglm.nb <- function(formula       = NULL,
       if (control[["trace"]]) {
         cat("Convergence\n")
       }
+      conv <- TRUE
       break
     }
   }
   rm(y, X, eta, A, B)
+  
+  # Update 'iter' and 'conv' in result list
+  fit[["iter"]] <- iter
+  fit[["conv"]] <- conv
   
   # Add names to \beta, Scores, and Hessian
   names(fit[["coefficients"]]) <- nms.sp

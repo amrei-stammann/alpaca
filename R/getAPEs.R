@@ -37,8 +37,8 @@
 #' Fernandez-Val, I. and Weidner, M. (2016). "Individual and time effects in nonlinear panel models 
 #' with large N, T". Journal of Econometrics, 192(1), 291-312.
 #' @references
-#' Fernandez-Val, I. and Weidner M. (2018). "Fixed effects estimation of large-t panel data models". 
-#' Annual Review of Economics, 10, 109-138.
+#' Fernandez-Val, I. and Weidner, M. (2018). "Fixed effects estimation of large-t panel data 
+#' models". Annual Review of Economics, 10, 109-138.
 #' @references
 #' Neyman, J. and Scott, E. L. (1948). "Consistent estimates based on partially consistent 
 #' observations". Econometrica, 16(1), 1-32.
@@ -56,6 +56,14 @@
 #' # Compute average partial effects
 #' mod.ape <- getAPEs(mod)
 #' summary(mod.ape)
+#' 
+#' # Apply analytical bias-correction
+#' mod.bc <- biasCorr(mod)
+#' summary(mod.bc)
+#' 
+#' # Compute bias-corrected average partial effects
+#' mod.ape.bc <- getAPEs(mod.bc)
+#' summary(mod.ape.bc)
 #' }
 #' @export
 getAPEs <- function(object = NULL, n.pop = NULL, weak.exo = FALSE) {
@@ -66,12 +74,13 @@ getAPEs <- function(object = NULL, n.pop = NULL, weak.exo = FALSE) {
     stop("'getAPEs' called on a non-'feglm' object.", call. = FALSE)
   }
   
-  # Check provided object
+  # Check if provided object is a two-way logit or probit
   # TODO: Add further average partial effects
   if (object[["family"]][["family"]] != "binomial" |
       !(object[["family"]][["link"]] %in% c("logit", "probit")) |
       length(object[["lvls.k"]]) != 2L) {
-    stop("'getAPEs' currently only supports logit and probit models with 2-way error component. Further models will be added in the future.", call. = FALSE)
+    stop(paste0("'getAPEs' currently only supports logit and probit models with 2-way error ", 
+                "component. Further models will be added in the future."), call. = FALSE)
   }
   
   # Extract model information
@@ -85,7 +94,6 @@ getAPEs <- function(object = NULL, n.pop = NULL, weak.exo = FALSE) {
   p <- length(beta)
   
   # Check validity of 'n.pop'
-  # n.pop > n ; set adj to 0 and warning
   if (!is.null(n.pop)) {
     n.pop <- as.integer(n.pop)
     if (n.pop < nt.full) {
@@ -154,7 +162,6 @@ getAPEs <- function(object = NULL, n.pop = NULL, weak.exo = FALSE) {
   J <- matrix(NA_real_, p, p)
   Delta[, !binary] <- mu.eta
   Delta1[, !binary] <- partialMuEta(eta, family, 2L)
-  rm(mu.eta)
   for (i in seq.int(p)) {
     if (binary[[i]]) {
       eta0 <- eta - X[, i] * beta[[i]]
@@ -166,15 +173,16 @@ getAPEs <- function(object = NULL, n.pop = NULL, weak.exo = FALSE) {
       J[i, - i] <- colSums(Delta1[, i] * X[, - i, drop = FALSE]) + J[i, - i]
       rm(eta0, f1)
     } else {
-      J[i, ] <- colSums((X - PX[, i]) * beta[[i]] * Delta1[, i])
-      J[i, i] <- sum(Delta[, i]) + J[i, i]
       Delta[, i] <- beta[[i]] * Delta[, i]
       Delta1[, i] <- beta[[i]] * Delta1[, i]
+      J[i, ] <- colSums((X - PX[, i]) * Delta1[, i])
+      J[i, i] <- sum(mu.eta) + J[i, i]
     }
   }
   delta <- colSums(Delta) / nt.full
   Delta <- t(t(Delta) - delta)
-  rm(PX)
+  J <- J / nt.full
+  rm(mu.eta, PX)
   
   # Compute projection and residual projection of \Psi
   MPsi <- centerVariables(Delta1 / sqrt(w), sqrt(w), A, B, lvls.k, control[["center.tol"]]) / 
@@ -189,13 +197,6 @@ getAPEs <- function(object = NULL, n.pop = NULL, weak.exo = FALSE) {
     if (L == 0L && weak.exo) {
       warning("Inconsistent choice of 'weak.exo'; argument set to FALSE.", call. = FALSE)
       weak.exo <- FALSE
-    }
-    
-    # Compute third-order derivative
-    if (family[["link"]] == "logit") {
-      z <- w * (1.0 - 2.0 * mu)
-    } else {
-      z <- - eta * w
     }
     
     # Compute second-order partial derivatives
@@ -228,8 +229,8 @@ getAPEs <- function(object = NULL, n.pop = NULL, weak.exo = FALSE) {
   rm(eta, mu, MPsi)
   
   # Compute standard errors
-  J <- J %*% solve(object[["Hessian"]])
-  Gamma <- object[["Score"]] %*% J - PPsi * v
+  J <- J %*% solve(object[["Hessian"]] / nt)
+  Gamma <- t(tcrossprod(J, object[["Score"]])) - PPsi * v
   V <- crossprod(Gamma)
   if (adj > 0.0) {
     V <- V + adj * (groupSumsVar(Delta, A[, 1L], B[, 1L]) + groupSumsVar(Delta, A[, 2L], B[, 2L]) - 

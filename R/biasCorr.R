@@ -25,8 +25,8 @@
 #' Fernandez-Val, I. and Weidner, M. (2016). "Individual and time effects in nonlinear panel models 
 #' with large N, T". Journal of Econometrics, 192(1), 291-312.
 #' @references
-#' Fernandez-Val, I. and Weidner M. (2018). "Fixed effects estimation of large-t panel data models". 
-#' Annual Review of Economics, 10, 109-138.
+#' Fernandez-Val, I. and Weidner, M. (2018). "Fixed effects estimation of large-t panel data 
+#' models". Annual Review of Economics, 10, 109-138.
 #' @references
 #' Hahn, J. and Kuersteiner, G. (2011). "Bias reduction for dynamic nonlinear panel models with 
 #' fixed effects". Econometric Theory, 27(6), 1152-1191.
@@ -47,10 +47,6 @@
 #' # Apply analytical bias-correction
 #' mod.bc <- biasCorr(mod)
 #' summary(mod.bc)
-#' 
-#' # Compute bias-corrected average partial effects
-#' mod.ape <- getAPEs(mod.bc)
-#' summary(mod.ape)
 #' }
 #' @export
 biasCorr <- function(object = NULL, L = 0L) {
@@ -124,7 +120,7 @@ biasCorr <- function(object = NULL, L = 0L) {
   # Compute bias-corrected structural parameters
   beta <- object[["coefficients"]] - solve(object[["Hessian"]], - (b + d))
   names(beta) <- nms.sp
- 
+  
   # Update result list
   object[["coefficients"]] <- beta
   object[["bandwidth"]] <- L
@@ -134,24 +130,4 @@ biasCorr <- function(object = NULL, L = 0L) {
   
   # Return updated list
   object
-}
-
-
-### Internal function (not exported)
-# Higher-order partial derivatives
-partialMuEta <- function(eta, family, order) {
-  f <- family[["mu.eta"]](eta)
-  if (order == 2L) {
-    if (family[["link"]] == "logit") {
-      f * (1.0 - 2.0 * family[["linkinv"]](eta))
-    } else {
-      - eta * f
-    }
-  } else {
-    if (family[["link"]] == "logit") {
-      f * ((1.0 - 2.0 * family[["linkinv"]](eta))^2 - 2.0 * f)
-    } else {
-      (eta^2 - 1.0) * f
-    }
-  }
 }

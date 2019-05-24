@@ -12,11 +12,11 @@
 #' \strong{Note:} Linear models are also beyond the scope of this package since there is already a
 #' comprehensive procedure available \link[lfe]{felm}.
 #' @name
-#' alpaca
+#' alpaca-package
 #' @docType
 #' package
 #' @importFrom
-#' data.table as.data.table setattr setkeyv := .SD
+#' data.table setattr setDT setkeyv := .SD
 #' @importFrom
 #' Formula Formula model.part
 #' @importFrom

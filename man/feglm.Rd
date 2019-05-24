@@ -62,8 +62,8 @@ summary(mod)
 Gaure, S. (2013). "OLS with Multiple High Dimensional Category Variables". Computational
 Statistics and Data Analysis, 66.
 
-Stammann, A., F. Heiss, and D. McFadden (2016). "Estimating Fixed Effects Logit Models with Large
-Panel Data". Working paper.
+Stammann, A., Heiss, F., and McFadden, D. (2016). "Estimating Fixed Effects Logit Models with 
+Large Panel Data". Working paper.
 
 Stammann, A. (2018). "Fast and Feasible Estimation of Generalized Linear Models with
 High-Dimensional k-Way Fixed Effects". ArXiv e-prints.

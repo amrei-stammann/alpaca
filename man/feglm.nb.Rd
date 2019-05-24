@@ -9,19 +9,11 @@ feglm.nb(formula = NULL, data = NULL, beta.start = NULL,
   "sqrt"), control = NULL)
 }
 \arguments{
-\item{formula}{see \code{\link{feglm}}.}
-
-\item{data}{see \code{\link{feglm}}.}
-
-\item{beta.start}{see \code{\link{feglm}}.}
-
-\item{eta.start}{see \code{\link{feglm}}.}
+\item{formula, data, beta.start, eta.start, control}{see \code{\link{feglm}}.}
 
 \item{init.theta}{an optional initial value for the theta parameter (see \code{\link[MASS]{glm.nb}}).}
 
 \item{link}{the link function. Must be one of \code{"log"}, \code{"sqrt"}, or \code{"identity"}.}
-
-\item{control}{see \code{\link{feglm}}.}
 }
 \value{
 The function \code{feglm.nb} returns a named list of class \code{"feglm"}.

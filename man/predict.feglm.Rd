@@ -9,7 +9,7 @@
 \arguments{
 \item{object}{an object of class \code{"feglm"}.}
 
-\item{type}{the type of prediction required. \code{"link"} is on the scale to the linear predictor
+\item{type}{the type of prediction required. \code{"link"} is on the scale of the linear predictor
 whereas \code{"response"} is on the scale of the response variable. Default is \code{"link"}.}
 
 \item{...}{other arguments.}

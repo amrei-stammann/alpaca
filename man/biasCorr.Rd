@@ -39,10 +39,6 @@ mod <- feglm(y ~ x1 + x2 + x3 | i + t, data)
 # Apply analytical bias-correction
 mod.bc <- biasCorr(mod)
 summary(mod.bc)
-
-# Compute bias-corrected average partial effects
-mod.ape <- getAPEs(mod.bc)
-summary(mod.ape)
 }
 }
 \references{
@@ -52,8 +48,8 @@ and Time Fixed Effects". ArXiv e-prints.
 Fernandez-Val, I. and Weidner, M. (2016). "Individual and time effects in nonlinear panel models 
 with large N, T". Journal of Econometrics, 192(1), 291-312.
 
-Fernandez-Val, I. and Weidner M. (2018). "Fixed effects estimation of large-t panel data models". 
-Annual Review of Economics, 10, 109-138.
+Fernandez-Val, I. and Weidner, M. (2018). "Fixed effects estimation of large-t panel data 
+models". Annual Review of Economics, 10, 109-138.
 
 Hahn, J. and Kuersteiner, G. (2011). "Bias reduction for dynamic nonlinear panel models with 
 fixed effects". Econometric Theory, 27(6), 1152-1191.

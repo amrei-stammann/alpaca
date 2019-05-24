@@ -40,8 +40,8 @@
 #' Gaure, S. (2013). "OLS with Multiple High Dimensional Category Variables". Computational
 #' Statistics and Data Analysis, 66.
 #' @references 
-#' Stammann, A., F. Heiss, and D. McFadden (2016). "Estimating Fixed Effects Logit Models with Large
-#' Panel Data". Working paper.
+#' Stammann, A., Heiss, F., and McFadden, D. (2016). "Estimating Fixed Effects Logit Models with 
+#' Large Panel Data". Working paper.
 #' @references 
 #' Stammann, A. (2018). "Fast and Feasible Estimation of Generalized Linear Models with
 #' High-Dimensional k-Way Fixed Effects". ArXiv e-prints.
@@ -101,47 +101,45 @@ feglm <- function(formula       = NULL,
   
   # Update formula and do further validity check
   formula <- Formula(formula)
-  lhs <- attr(formula, "lhs")[[1L]]
   if (length(formula)[[2L]] < 2L || length(formula)[[1L]] > 1L) {
     stop("'formula' uncorrectly specified.", call. = FALSE)
   }
   
   # Generate model.frame
-  if (is.null(attr(data, "terms"))) {
-    data <- suppressWarnings(model.frame(formula, data))
-  }
-  data <- as.data.table(data)
+  data <- suppressWarnings(model.frame(formula, data))
+  setDT(data)
+  lhs <- names(data)[[1L]]
   nobs.full <- nrow(data)
   nobs.na <- length(attr(data, "na.action"))
   
   # Ensure that model response is in line with the choosen model
   if (family[["family"]] == "binomial") {
     # Check if 'y' is numeric
-    if (data[, is.numeric(eval(lhs))]) {
+    if (data[, is.numeric(get(lhs))]) {
       # Check if 'y' is in [0, 1]
-      if (data[, any(eval(lhs) < 0.0 | eval(lhs) > 1.0)]) {
+      if (data[, any(get(lhs) < 0.0 | get(lhs) > 1.0)]) {
         stop("Model response has to be within the unit interval.", call. = FALSE)
       }
     } else {
       # Check if 'y' is factor and transform otherwise
-      data[, (1L) := checkFactor(eval(lhs))]
+      data[, (1L) := checkFactor(get(lhs))]
       
       # Check if the number of levels equals two
-      if (data[, length(levels(eval(lhs)))] != 2L) {
+      if (data[, length(levels(get(lhs)))] != 2L) {
         stop("Model response has to be binary.", call. = FALSE)
       }
       
       # Ensure 'y' is 0-1 encoded
-      data[, (1L) := as.integer(eval(lhs)) - 1L]
+      data[, (1L) := as.integer(get(lhs)) - 1L]
     }
   } else if (family[["family"]] %in% c("Gamma", "inverse.gaussian")) {
     # Check if 'y' is strictly positive
-    if (data[, any(eval(lhs) <= 0.0)]) {
+    if (data[, any(get(lhs) <= 0.0)]) {
       stop("Model response has to be strictly positive.", call. = FALSE)
     }
   } else {
     # Check if 'y' is positive
-    if (data[, any(eval(lhs) < 0.0)]) {
+    if (data[, any(get(lhs) < 0.0)]) {
       stop("Model response has to be positive.", call. = FALSE)
     }
   }
@@ -156,7 +154,7 @@ feglm <- function(formula       = NULL,
       trms <- attr(data, "terms") # Store terms; required for model matrix
       tmp.var <- tempVar(data)
       for (i in k.vars) {
-        data[, (tmp.var) := mean(eval(lhs)), by = eval(i)]
+        data[, (tmp.var) := mean(get(lhs)), by = eval(i)]
         if (family[["family"]] == "binomial") {
           data <- data[get(tmp.var) > 0.0 & get(tmp.var) < 1.0]
         } else {
@@ -228,7 +226,7 @@ feglm <- function(formula       = NULL,
     tmp.var <- tempVar(data)
     eta <- numeric(nobs[[4L]])
     for (i in k.vars) {
-      data[, (tmp.var) := mean(eval(lhs)), by = eval(i)]
+      data[, (tmp.var) := mean(get(lhs)), by = eval(i)]
       if (family[["family"]] == "binomial") {
         eta <- eta + family[["linkfun"]]((data[[tmp.var]] + 0.5) / 2.0) / k
       } else if (family[["family"]] %in% c("Gamma", "inverse.gaussian")) {
@@ -318,7 +316,7 @@ feglm <- function(formula       = NULL,
 #' @param
 #' step.tol depreacted; termination conditions is now similar to \code{\link[stats]{glm}}.
 #' @param
-#' ... arguments passed to the deprecated function \code{\link{feglmControl}}.
+#' ... arguments passed to the deprecated function \code{\link{feglm.control}}.
 #' @return
 #' The function \code{\link{feglmControl}} returns a named list of control 
 #' parameters.
@@ -387,6 +385,7 @@ feglmFit <- function(beta, eta, y, X, A, B, lvls.k, family, control) {
   null.dev <- sum(family[["dev.resids"]](y, mean(y), wt))
   
   # Start maximization of the log-likelihood
+  conv <- FALSE
   for (iter in seq.int(control[["iter.max"]])) {
     # Compute weights and dependent variable
     mu.eta <- family[["mu.eta"]](eta)
@@ -397,10 +396,7 @@ feglmFit <- function(beta, eta, y, X, A, B, lvls.k, family, control) {
     M <- centerVariables(cbind(nu, X) * w.tilde, w.tilde, A, B, lvls.k, control[["center.tol"]])
     
     # Compute update step and update \eta
-    beta.upd <- try(solveNR(M[, - 1L, drop = FALSE], M[, 1L]), silent = TRUE)
-    if (inherits(beta.upd, "try-error")) {
-      stop("Failure to solve Newton equations.", call. = FALSE)
-    }
+    beta.upd <- qr.solve(M[, - 1L, drop = FALSE], M[, 1L])
     eta.upd <- as.vector(nu - (M[, 1L] - M[, - 1L, drop = FALSE] %*% beta.upd) / w.tilde)
     
     # Stephalving based on residual deviance as common in glm's
@@ -424,14 +420,13 @@ feglmFit <- function(beta, eta, y, X, A, B, lvls.k, family, control) {
       
       # If \rho is to small throw error
       if (rho < control[["rho.tol"]]) {
-        # TODO: Add info that this might be due perfect colliniearity with fixed effects
         stop("Failure in stephalving.", call. = FALSE)
       }
     }
     
     # Progress information
     if (control[["trace"]]) {
-      cat("Deviance=", round(dev, 2L), "- Iteration= ", iter, "\n")
+      cat("Deviance=", round(dev, 2L), "- Iteration=", iter, "\n")
     }
     
     # Check termination condition
@@ -473,7 +468,7 @@ feglmOffset <- function(object, offset) {
   control <- object[["control"]]
   lvls.k <- object[["lvls.k"]]
   nobs <- object[["nobs"]][["nobs"]]
-  lhs <- attr(formula, "lhs")[[1L]]
+  lhs <- names(object[["data"]])[[1L]]
   k.vars <- names(lvls.k)
   k <- length(lvls.k)
   
@@ -481,7 +476,7 @@ feglmOffset <- function(object, offset) {
   tmp.var <- tempVar(object[["data"]])
   eta <- numeric(nobs)
   for (i in k.vars) {
-    object[["data"]][, (tmp.var) := mean(eval(lhs)), by = eval(i)]
+    object[["data"]][, (tmp.var) := mean(get(lhs)), by = eval(i)]
     if (family[["family"]] == "binomial") {
       eta <- eta + family[["linkfun"]]((object[["data"]][[tmp.var]] + 0.5) / 2.0) / k
     } else if (family[["family"]] %in% c("Gamma", "inverse.gaussian")) {

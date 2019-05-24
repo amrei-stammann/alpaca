@@ -11,20 +11,34 @@ checkFactor <- function(x) {
 }
 
 
-# Solve Newton-Rapshon equations using QR factorization
-solveNR <- function(X, y) {
-  QR <- qr(X)
-  as.vector(backsolve(qr.R(QR), crossprod(qr.Q(QR), y)))
+# Higher-order partial derivatives
+partialMuEta <- function(eta, family, order) {
+  f <- family[["mu.eta"]](eta)
+  if (order == 2L) {
+    if (family[["link"]] == "logit") {
+      f * (1.0 - 2.0 * family[["linkinv"]](eta))
+    } else {
+      - eta * f
+    }
+  } else {
+    if (family[["link"]] == "logit") {
+      f * ((1.0 - 2.0 * family[["linkinv"]](eta))^2 - 2.0 * f)
+    } else {
+      (eta^2 - 1.0) * f
+    }
+  }
 }
 
 
 # Returns suitable name for a temporary variable
 tempVar <- function(data) {
   repeat {
-    tmpvar <- paste0(sample(letters, 5L, replace = TRUE), collapse = "")
-    if (!(tmpvar %in% colnames(data))) break
+    tmp.var <- paste0(sample(letters, 5L, replace = TRUE), collapse = "")
+    if (!(tmp.var %in% colnames(data))) {
+      break
+    }
   }
-  tmpvar
+  tmp.var
 }
 
 

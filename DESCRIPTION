@@ -1,7 +1,7 @@
 Package: alpaca
 Type: Package
 Title: Fit GLM's with High-Dimensional k-Way Fixed Effects
-Version: 0.3
+Version: 0.3.1
 Authors@R: c(
   person("Amrei", "Stammann", email = "amrei.stammann@hhu.de", role = c("aut", "cre")),
   person("Daniel", "Czarnowske", email = "daniel.czarnowske@hhu.de", role = c("aut"),

@@ -48,6 +48,14 @@ mod <- feglm(y ~ x1 + x2 + x3 | i + t, data)
 # Compute average partial effects
 mod.ape <- getAPEs(mod)
 summary(mod.ape)
+
+# Apply analytical bias-correction
+mod.bc <- biasCorr(mod)
+summary(mod.bc)
+
+# Compute bias-corrected average partial effects
+mod.ape.bc <- getAPEs(mod.bc)
+summary(mod.ape.bc)
 }
 }
 \references{
@@ -60,8 +68,8 @@ and Time Fixed Effects". ArXiv e-prints.
 Fernandez-Val, I. and Weidner, M. (2016). "Individual and time effects in nonlinear panel models 
 with large N, T". Journal of Econometrics, 192(1), 291-312.
 
-Fernandez-Val, I. and Weidner M. (2018). "Fixed effects estimation of large-t panel data models". 
-Annual Review of Economics, 10, 109-138.
+Fernandez-Val, I. and Weidner, M. (2018). "Fixed effects estimation of large-t panel data 
+models". Annual Review of Economics, 10, 109-138.
 
 Neyman, J. and Scott, E. L. (1948). "Consistent estimates based on partially consistent 
 observations". Econometrica, 16(1), 1-32.
