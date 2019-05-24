@@ -13,6 +13,17 @@ The package is also available on CRAN https://cran.r-project.org/web/packages/al
 
 ## News
 
+### alpaca v0.3.1 (Release Date: 2019-05-24)
+
+Changes:
+
+* All routines now use `setDT()` instead of `as.data.table()` to avoid unnecessary copies (suggested in #6 @zauster).
+* `feglm.nb()` now returns 'iter' and 'conv' based on iterations of the outer loop.
+* Fixed a bug in `feglm()` that prevented to use `I()` for the dependent variable.
+* Fixed an error in `getAPEs()` related to the covariance.
+* The last line of `print.summary.feglm()` now ends with a line break (#6 @zauster).
+* The internal function `feglmFit()` now correctly sets 'conv' if the algorithm does not converge (#5 @zauster).
+
 ### alpaca v0.3 (Release Date: 2019-05-14)
 
 Changes:
