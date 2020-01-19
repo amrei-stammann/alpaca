@@ -1,5 +1,17 @@
 \name{NEWS}
 \title{alpaca news}
+\section{Changes in version 0.3.2}{
+  \itemize{
+    \item Added option 'panel.structure' to \code{biasCorr()} and \code{getAPEs()}. This option allows to choose between the two-way bias correction suggested by Fernandez-Val and Weidner (2016) and the bias corrections for network data suggested by Hinz, Stammann, and Wanner (2019). Currently both corrections are restricted to probit and logit models.
+    \item Added option 'sampling.fe' to \code{getAPEs()} to impose simplifying assumptions when estimating the covariance matrix.
+    \item \code{feglm()} now permits to expand functions with \code{poly()} and \code{bs()} (#9 @tcovert).
+    \item \code{feglm()} now uses an acceleration scheme suggested by Correia, Guimaraes, and Zylkin (2019) that uses smarter starting values for \code{centerVariables()}.
+    \item Added an example of the three-way bias correction suggested by Hinz, Stammann, and Wanner (2019) to the vignette.
+    \item The control parameter 'trace' now also returns the current parameter values as well as the residual deviance.
+    \item Fixed an error in \code{getAPEs()} related to the estimation of the covariance.
+    \item Fixed a bug in the internal function that is used to estimate spectral densities.
+  }
+}
 \section{Changes in version 0.3.1}{
   \itemize{
     \item All routines now use \code{setDT()} instead of \code{as.data.table()} to avoid unnecessary copies (suggested in #6 @zauster).

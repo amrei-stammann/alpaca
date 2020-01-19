@@ -1,5 +1,3 @@
-citHeader("To cite alpaca in publications use:")
-
 citEntry(entry = "Article",
   title        = "Fast and Feasible Estimation of Generalized Linear Models with
   High-Dimensional k-way Fixed Effects",
@@ -7,11 +5,39 @@ citEntry(entry = "Article",
   journal      = "ArXiv e-prints",
   year         = "2018",
   url          = "https://arxiv.org/pdf/1707.01815.pdf",
-
+  header       = "To cite alpaca in publications use:",
   textVersion  =
   paste("Stammann, Amrei (2018).",
-        "Fast and Feasible Estimation of Generalized Linear Models with High-Dimensional
-        k-way Fixed Effects.",
-        "ArXiv e-prints.",
-        "URL https://arxiv.org/pdf/1707.01815.pdf.")
+        "Fast and Feasible Estimation of Generalized Linear Models with High-Dimensional k-way Fixed Effects.",
+        "ArXiv e-prints.")
+)
+
+citEntry(entry = "Article",
+  title        = "Individual and time effects in nonlinear panel models with large N, T",
+  author       = as.person(c("Ivan Fernandez-Val", "Martin Weidner")),
+  journal      = "Journal of Econometrics",
+  volume       = "192",
+  number       = "1",
+  pages        = "291--312",
+  year         = "2016",
+  doi          = "10.1016/j.jeconom.2015.12.014",
+  url          = "http://www.sciencedirect.com/science/article/pii/S0304407615002997",
+  header       = "To cite the bias corrections of Fernandez-Val and Weidner in publications use:",
+  textVersion  =
+  paste("Fernandez-Val, Ivan and Weidner, Martin (2016).",
+        "Individual and time effects in nonlinear panel models with large N, T.",
+        "Journal of Econometrics, Volume 192, Issue 1, 291-312.")
+)
+
+citEntry(entry = "Article",
+  title        = "Persistent Zeros: The Extensive Margin of Trade",
+  author       = as.person(c("Julian Hinz", "Amrei Stammann",  "Joschka Wanner")),
+  journal      = "Kiel Working Paper",
+  year         = "2019",
+  url          = "https://www.ifw-kiel.de/fileadmin/Dateiverwaltung/IfW-Publications/Julian_Hinz/Persistent_Zeros__The_Extensive_Margin_of_Trade/KWP_2139.pdf",
+  header       = "To cite the bias corrections of Hinz, Stammann, and Wanner in publications use:",
+  textVersion  =
+  paste("Hinz, Julian, Stammann, Amrei, and Wanner, Joschka (2019).",
+        "Persistent Zeros: The Extensive Margin of Trade.",
+        "Kiel Working Paper.")
 )
