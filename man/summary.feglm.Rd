@@ -4,8 +4,13 @@
 \alias{summary.feglm}
 \title{Summarizing models of class \code{feglm}}
 \usage{
-\method{summary}{feglm}(object, type = c("hessian", "outer.product",
-  "sandwich", "clustered"), cluster = NULL, cluster.vars = NULL, ...)
+\method{summary}{feglm}(
+  object,
+  type = c("hessian", "outer.product", "sandwich", "clustered"),
+  cluster = NULL,
+  cluster.vars = NULL,
+  ...
+)
 }
 \arguments{
 \item{object}{an object of class \code{"feglm"}.}

@@ -4,9 +4,15 @@
 \alias{feglm.nb}
 \title{Efficiently fit negative binomial glm's with high-dimensional \eqn{k}-way fixed effects}
 \usage{
-feglm.nb(formula = NULL, data = NULL, beta.start = NULL,
-  eta.start = NULL, init.theta = NULL, link = c("log", "identity",
-  "sqrt"), control = NULL)
+feglm.nb(
+  formula = NULL,
+  data = NULL,
+  beta.start = NULL,
+  eta.start = NULL,
+  init.theta = NULL,
+  link = c("log", "identity", "sqrt"),
+  control = NULL
+)
 }
 \arguments{
 \item{formula, data, beta.start, eta.start, control}{see \code{\link{feglm}}.}

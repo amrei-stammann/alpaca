@@ -2,9 +2,16 @@
 % Please edit documentation in R/getAPEs.R
 \name{getAPEs}
 \alias{getAPEs}
-\title{Compute average partial effects after fitting binary choice models with two-way error component}
+\title{Compute average partial effects after fitting binary choice models with a two-/three-way error 
+component}
 \usage{
-getAPEs(object = NULL, n.pop = NULL, weak.exo = FALSE)
+getAPEs(
+  object = NULL,
+  n.pop = NULL,
+  panel.structure = c("classic", "network"),
+  sampling.fe = c("independence", "unrestricted"),
+  weak.exo = FALSE
+)
 }
 \arguments{
 \item{object}{an object of class \code{"biasCorr"} or \code{"feglm"}; currently restricted to 
@@ -17,6 +24,18 @@ Cruz-Gonzalez, Fernandez-Val, and Weidner (2017). The correction factor is compu
 where \eqn{n^{\ast}}{n.pop} and \eqn{n}{n} are the size of the entire 
 population and the full sample size. Default is \code{NULL}, which refers to a factor of one and 
 is equal to an infinitely large population.}
+
+\item{panel.structure}{a string equal to \code{"classic"} or \code{"network"} which determines the 
+structure of the panel used. \code{"classic"} denotes panel structures where for example the same
+cross-sectional units are observed several times (this includes pseudo panels). 
+\code{"network"} denotes panel structures where for example bilateral trade flows are observed 
+for several time periods. Default is \code{"classic"}.}
+
+\item{sampling.fe}{a string equal to \code{"independence"} or \code{"unrestricted"} which imposes 
+sampling assumptions about the unobserved effects. \code{"independence"} imposes that all 
+unobserved effects are mutually independent sequences. \code{"unrestricted"} does not impose any
+sampling assumptions. Note that this option only affects the estimation of the covariance. 
+Default is \code{"independence"}.}
 
 \item{weak.exo}{logical indicating if some of the regressors are assumed to be weakly exogenous (e.g. 
 predetermined). If object is of class \code{"biasCorr"}, the option will be automatically set to 
@@ -49,7 +68,7 @@ mod <- feglm(y ~ x1 + x2 + x3 | i + t, data)
 mod.ape <- getAPEs(mod)
 summary(mod.ape)
 
-# Apply analytical bias-correction
+# Apply analytical bias correction
 mod.bc <- biasCorr(mod)
 summary(mod.bc)
 
@@ -70,6 +89,9 @@ with large N, T". Journal of Econometrics, 192(1), 291-312.
 
 Fernandez-Val, I. and Weidner, M. (2018). "Fixed effects estimation of large-t panel data 
 models". Annual Review of Economics, 10, 109-138.
+
+Hinz, J., Stammann, A, and Wanner, J. (2019). "Persistent Zeros: The Extensive Margin of Trade".
+Working Paper.
 
 Neyman, J. and Scott, E. L. (1948). "Consistent estimates based on partially consistent 
 observations". Econometrica, 16(1), 1-32.

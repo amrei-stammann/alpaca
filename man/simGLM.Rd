@@ -4,8 +4,7 @@
 \alias{simGLM}
 \title{Generate an artificial data set for some GLM's with two-way fixed effects}
 \usage{
-simGLM(n = NULL, t = NULL, seed = NULL, model = c("logit",
-  "poisson", "gamma"))
+simGLM(n = NULL, t = NULL, seed = NULL, model = c("logit", "poisson", "gamma"))
 }
 \arguments{
 \item{n}{a strictly positive integer equal to the number of cross-sectional units.}
@@ -14,7 +13,8 @@ simGLM(n = NULL, t = NULL, seed = NULL, model = c("logit",
 
 \item{seed}{a seed to ensure reproducibility.}
 
-\item{model}{a string equal to \code{"logit"}, \code{"poisson"}, or \code{"gamma"}.}
+\item{model}{a string equal to \code{"logit"}, \code{"poisson"}, or \code{"gamma"}. Default is 
+\code{"logit"}.}
 }
 \value{
 The function \code{\link{simGLM}} returns a data.frame with 6 variables.

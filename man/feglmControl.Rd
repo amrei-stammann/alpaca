@@ -5,9 +5,18 @@
 \alias{feglm.control}
 \title{Set \code{feglm} Control Parameters}
 \usage{
-feglmControl(dev.tol = 1e-08, center.tol = 1e-05, rho.tol = 1e-04,
-  conv.tol = 1e-06, iter.max = 100L, limit = 10L, trace = FALSE,
-  drop.pc = TRUE, pseudo.tol = NULL, step.tol = NULL)
+feglmControl(
+  dev.tol = 1e-08,
+  center.tol = 1e-05,
+  rho.tol = 1e-04,
+  conv.tol = 1e-06,
+  iter.max = 100L,
+  limit = 10L,
+  trace = FALSE,
+  drop.pc = TRUE,
+  pseudo.tol = NULL,
+  step.tol = NULL
+)
 
 feglm.control(...)
 }

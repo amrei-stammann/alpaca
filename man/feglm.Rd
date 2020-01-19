@@ -4,8 +4,14 @@
 \alias{feglm}
 \title{Efficiently fit glm's with high-dimensional \eqn{k}-way fixed effects}
 \usage{
-feglm(formula = NULL, data = NULL, family = binomial(),
-  beta.start = NULL, eta.start = NULL, control = NULL)
+feglm(
+  formula = NULL,
+  data = NULL,
+  family = binomial(),
+  beta.start = NULL,
+  eta.start = NULL,
+  control = NULL
+)
 }
 \arguments{
 \item{formula}{an object of class \code{"formula"}: a symbolic description of the model to be fitted.

@@ -4,8 +4,7 @@
 \alias{print.summary.APEs}
 \title{Print \code{summary.APEs}}
 \usage{
-\method{print}{summary.APEs}(x, digits = max(3L, getOption("digits") -
-  3L), ...)
+\method{print}{summary.APEs}(x, digits = max(3L, getOption("digits") - 3L), ...)
 }
 \arguments{
 \item{x}{an object of class \code{"summary.APEs"}.}

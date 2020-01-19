@@ -4,8 +4,7 @@
 \alias{print.summary.feglm}
 \title{Print \code{summary.feglm}}
 \usage{
-\method{print}{summary.feglm}(x, digits = max(3L, getOption("digits") -
-  3L), ...)
+\method{print}{summary.feglm}(x, digits = max(3L, getOption("digits") - 3L), ...)
 }
 \arguments{
 \item{x}{an object of class \code{"summary.feglm"}.}

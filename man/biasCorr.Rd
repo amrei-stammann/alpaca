@@ -2,9 +2,10 @@
 % Please edit documentation in R/biasCorr.R
 \name{biasCorr}
 \alias{biasCorr}
-\title{Asymptotic bias-correction after fitting binary choice models with two-way error component}
+\title{Asymptotic bias correction after fitting binary choice models with a two-/three-way error
+component}
 \usage{
-biasCorr(object = NULL, L = 0L)
+biasCorr(object = NULL, L = 0L, panel.structure = c("classic", "network"))
 }
 \arguments{
 \item{object}{an object of class \code{"feglm"}; currently restricted to \code{\link[stats]{binomial}} 
@@ -14,7 +15,14 @@ with \code{"logit"} or \code{"probit"} link function.}
 Hahn and Kuersteiner (2011). Default is zero, which should be used if all regressors are 
 assumed to be strictly exogenous. In the presence of weakly exogenous or predetermined 
 regressors, Fernandez-Val and Weidner (2016, 2018) suggest to choose a bandwidth not higher than 
-four.}
+four. Note that the order of factors to be concentrated out is important for bandwidths larger 
+than zero (see vignette for details).}
+
+\item{panel.structure}{a string equal to \code{"classic"} or \code{"network"} which determines the 
+structure of the panel used. \code{"classic"} denotes panel structures where for example the same
+cross-sectional units are observed several times (this includes pseudo panels). 
+\code{"network"} denotes panel structures where for example bilateral trade flows are observed 
+for several time periods. Default is \code{"classic"}.}
 }
 \value{
 The function \code{\link{biasCorr}} returns a named list of classes \code{"biasCorr"} and 
@@ -24,8 +32,9 @@ The function \code{\link{biasCorr}} returns a named list of classes \code{"biasC
 \code{\link{biasCorr}} is a post-estimation routine that can be used to substantially reduce the 
 incidental parameter bias problem (Neyman and Scott (1948)) present in non-linear fixed effects 
 models (see Fernandez-Val and Weidner (2018) for an overview). The command applies the analytical 
-bias-correction derived by Fernandez-Val and Weinder (2016) to obtain bias-corrected estimates of 
-the structural parameters and is currently restricted to logit and probit models.
+bias correction derived by Fernandez-Val and Weinder (2016) and Hinz, Stammann, and Wanner (2019) 
+to obtain bias-corrected estimates of the structural parameters and is currently restricted to 
+logit and probit models.
 }
 \examples{
 \donttest{
@@ -36,7 +45,7 @@ data <- simGLM(1000L, 20L, 1805L, model = "logit")
 # Fit 'feglm()'
 mod <- feglm(y ~ x1 + x2 + x3 | i + t, data)
 
-# Apply analytical bias-correction
+# Apply analytical bias correction
 mod.bc <- biasCorr(mod)
 summary(mod.bc)
 }
@@ -53,6 +62,9 @@ models". Annual Review of Economics, 10, 109-138.
 
 Hahn, J. and Kuersteiner, G. (2011). "Bias reduction for dynamic nonlinear panel models with 
 fixed effects". Econometric Theory, 27(6), 1152-1191.
+
+Hinz, J., Stammann, A, and Wanner, J. (2019). "Persistent Zeros: The Extensive Margin of Trade".
+Working Paper.
 
 Neyman, J. and Scott, E. L. (1948). "Consistent estimates based on partially consistent 
 observations". Econometrica, 16(1), 1-32.

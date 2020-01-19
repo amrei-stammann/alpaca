@@ -4,8 +4,13 @@
 \alias{vcov.feglm}
 \title{Extract estimates of the covariance matrix}
 \usage{
-\method{vcov}{feglm}(object, type = c("hessian", "outer.product",
-  "sandwich", "clustered"), cluster = NULL, cluster.vars = NULL, ...)
+\method{vcov}{feglm}(
+  object,
+  type = c("hessian", "outer.product", "sandwich", "clustered"),
+  cluster = NULL,
+  cluster.vars = NULL,
+  ...
+)
 }
 \arguments{
 \item{object}{an object of class \code{"feglm"}.}
