@@ -13,6 +13,19 @@ The package is also available on CRAN https://cran.r-project.org/web/packages/al
 
 ## News
 
+### alpaca v0.3.2 (Release Date: 2020-01-12)
+
+Changes:
+
+* Added option 'panel.structure' to `biasCorr()` and `getAPEs()`. This option allows to choose between the two-way bias correction suggested by Fernandez-Val and Weidner (2016) and the bias corrections for network data suggested by Hinz, Stammann, and Wanner (2019). Currently both corrections are restricted to probit and logit models.
+* Added option 'sampling.fe' to `getAPEs()` to impose simplifying assumptions when estimating the covariance matrix.
+* `feglm()` now permits to expand functions with `poly()` and `bs()` (#9 @tcovert).
+* `feglm()` now uses an acceleration scheme suggested by Correia, Guimaraes, and Zylkin (2019) that uses smarter starting values for `centerVariables()`.
+* Added an example of the three-way bias correction suggested by Hinz, Stammann, and Wanner (2019) to the vignette.
+* The control parameter 'trace' now also returns the current parameter values as well as the residual deviance.
+* Fixed an error in `getAPEs()` related to the estimation of the covariance.
+* Fixed a bug in the internal function that is used to estimate spectral densities.
+
 ### alpaca v0.3.1 (Release Date: 2019-05-24)
 
 Changes:
