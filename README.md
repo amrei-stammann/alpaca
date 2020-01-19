@@ -3,13 +3,13 @@
 ## Info
 An R-package for fitting glm's with high-dimensional k-way fixed effects.
 
-Provides a routine to concentrate out factors with many levels during the optimization of the log-likelihood function of the corresponding generalized linear model (glm). The package is based on the algorithm proposed by Stammann (2018) [https://arxiv.org/abs/1707.01815] and is restricted to glm's that are based on maximum likelihood estimation and non-linear. It also offers an efficient algorithm to recover estimates of the fixed effects in a post-estimation routine and includes robust and multi-way clustered standard errors. Further the package provides analytical bias corrections for binary choice models (logit and probit) derived by Fernandez-Val and Weidner (2016)[https://www.sciencedirect.com/science/article/pii/S0304407615002997] and Hinz, Stammann, and Wanner (2019)[https://julianhinz.com/research/persistent_zeros/persistent_zeros.pdf].
+Provides a routine to concentrate out factors with many levels during the optimization of the log-likelihood function of the corresponding generalized linear model (glm). The package is based on the algorithm proposed by [Stammann (2018)](https://arxiv.org/abs/1707.01815) and is restricted to glm's that are based on maximum likelihood estimation and non-linear. It also offers an efficient algorithm to recover estimates of the fixed effects in a post-estimation routine and includes robust and multi-way clustered standard errors. Further the package provides analytical bias corrections for binary choice models (logit and probit) derived by [Fernandez-Val and Weidner (2016)](https://www.sciencedirect.com/science/article/pii/S0304407615002997) and [Hinz, Stammann, and Wanner (2019)](https://julianhinz.com/research/persistent_zeros/persistent_zeros.pdf).
 
 This package is well suited to estimate so called "pseudo poisson maximum likelihood" (PPML) models with high-dimensional fixed effects that are commonly used in the international trade literature (structural gravity models). See the empirical example in Stammann (2018) and the vignettes.
 
-If you have any suggestions for improvements or questions, feel free to contact me (Amrei.Stammann@hhu.de).
+If you have any suggestions for improvements or questions, feel free to [contact me](mailto:Amrei.Stammann@hhu.de).
 
-The package is also available on CRAN https://cran.r-project.org/web/packages/alpaca/index.html.
+The package is also available on [CRAN](https://cran.r-project.org/package=alpaca).
 
 ## News
 
