@@ -2,6 +2,7 @@
 #include <RcppArmadillo.h>
 
 
+// Method of alternating projections (Halperin)
 // [[Rcpp::export(name = "centerVariables")]]
 arma::mat CenterVariables(const arma::mat &kV,
                           const arma::vec &kw,
@@ -14,10 +15,10 @@ arma::mat CenterVariables(const arma::mat &kV,
   const int kp = kV.n_cols;
   const int kk = kA.n_cols;
   
-  // Halperin projections (default)
+  // Halperin projections
   arma::mat M(kn, kp);
   for (int p = 0 ; p < kp ; ++p) {
-    // Center variable each variable
+    // Center each variable
     arma::vec Mv = kV.col(p);
     double crit;
     do {
@@ -27,7 +28,7 @@ arma::mat CenterVariables(const arma::mat &kV,
       // Alternate between categories
       const arma::vec kMv_old = Mv;
       for (int k = 0 ; k < kk ; ++k) {
-        // Sort category k
+        // Sort by category k
         arma::vec Mv_k(kn);
         arma::vec w_k(kn);
         arma::ivec a_k(kn);

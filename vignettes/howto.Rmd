@@ -70,9 +70,9 @@ summary(stat)
 ## 
 ## Number of Fisher Scoring Iterations: 6
 ```
-As `glm()`, the summary statistic of the model provides detailed information about the coefficients and some information about the model fit (`residual deviance` and `null deviance`). Furthermore, we report statistics that are specific to fixed effects models. More precisely, we learn that only 5,976 observations out of 13,149 contribute to the idenfication of the structural parameters. This is indicated by the message that 7,173 observations are deleted due to perfect classification. With respect to binary choice models those are observations that are related to women who never change their labor force participation status during the nine years observed. Thus those women were either always employed or unemployed.[Note that in this specification (with individual and time fixed effects) also observations related to a specific time period where all women are either in labor force or not can be dropped. However this is very unlikely in practice.] Overall the estimation results are based on 664 women observed for nine years.
+As `glm()`, the summary statistic of the model provides detailed information about the coefficients and some information about the model fit (`residual deviance` and `null deviance`). Furthermore, we report statistics that are specific to fixed effects models. More precisely, we learn that only 5,976 observations out of 13,149 contribute to the idenfication of the structural parameters. This is indicated by the message that 7,173 observations are deleted due to perfect classification. With respect to binary choice models those are observations that are related to women who never change their labor force participation status during the nine years observed. Thus those women were either always employed or unemployed.^[Note that in this specification (with individual and time fixed effects) also observations related to a specific time period where all women are either in labor force or not can be dropped. However this is very unlikely in practice.] Overall the estimation results are based on 664 women observed for nine years.
 
-Because coefficients itself are not very meaningful, econometricians are usually interested in so called partial effects (also known as marginal or ceteris paribus effects). A commonly used statistic is the average partial effect. `alpaca` offers a post-estimation routine to estimate average partial effects and their corresponding standard errors.[The routine is currently restricted to probit and logit models but will be extended in the future.]
+Because coefficients itself are not very meaningful, econometricians are usually interested in so called partial effects (also known as marginal or ceteris paribus effects). A commonly used statistic is the average partial effect. `alpaca` offers a post-estimation routine to estimate average partial effects and their corresponding standard errors.^[The routine is currently restricted to probit and logit models but will be extended in the future.]
 ```{r, eval = FALSE}
 apes.stat <- getAPEs(stat)
 summary(apes.stat)
@@ -80,16 +80,16 @@ summary(apes.stat)
 
 ```{r, eval = FALSE}
 ## Estimates:
-##             Estimate Std. error z value Pr(> |z|)  
-## KID1      -0.0880159  0.0373733  -2.355    0.0185 *
-## KID2      -0.0447791  0.0197079  -2.272    0.0231 *
-## KID3      -0.0009152  0.0050072  -0.183    0.8550  
-## log(INCH) -0.0304440  0.0161221  -1.888    0.0590 .
+##             Estimate Std. error z value Pr(> |z|)
+## KID1      -0.0880159  0.0394090  -2.233    0.0255 *
+## KID2      -0.0447791  0.0234544  -1.909    0.0562 .
+## KID3      -0.0009152  0.0110216  -0.083    0.9338
+## log(INCH) -0.0304440  0.0209490  -1.453    0.1462
 ## ---
 ## Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
 ```
 
-A widespread reason that prevents the use of non-linear fixed effects models in practice is the so-called incidental parameter bias problem (*IPP*) first mentioned by @ns48. Fortunately, for classical panel data sets, like in this example, there already exist several asymptotic bias-corrections tackling the *IPP* (see @fw18 for an overview). Our package provides a post-estimation routine that applies the analytical bias-correction derived by @fw16.[See footnote 2.] Technical details on how the bias-correction is accelerated using the method of alternating projections can be found in @cs19.[In our article, we also apply several asymptotic bias-corrections to a very similar empirical example where we use German micro data from the *German Socio-Economic Panel*.]
+A widespread reason that prevents the use of non-linear fixed effects models in practice is the so-called incidental parameter bias problem (*IPP*) first mentioned by @ns48. Fortunately, for classical panel data sets, like in this example, there already exist several asymptotic bias corrections tackling the *IPP* (see @fw18 for an overview).^[@cfw17 apply the same bias correction to a pseudo panel of bilateral trade flows.] Our package provides a post-estimation routine that applies the analytical bias correction derived by @fw16.^[See footnote 2.] Technical details on how the bias correction is accelerated using the method of alternating projections can be found in @cs19.^[In our article, we also apply several asymptotic bias corrections to a very similar empirical example where we use German micro data from the *German Socio-Economic Panel*.]
 ```{r, eval = FALSE}
 stat.bc <- biasCorr(stat)
 summary(stat.bc)
@@ -126,15 +126,15 @@ summary(apes.stat.bc)
 ```{r, eval = FALSE}
 ## Estimates:
 ##            Estimate Std. error z value Pr(> |z|)   
-## KID1      -0.096502   0.033379  -2.891   0.00384 **
-## KID2      -0.049094   0.017778  -2.761   0.00575 **
-## KID3      -0.000989   0.005041  -0.196   0.84448   
-## log(INCH) -0.033511   0.014861  -2.255   0.02414 * 
+## KID1      -0.096502   0.035943  -2.685   0.00726 **
+## KID2      -0.049094   0.022014  -2.230   0.02574 * 
+## KID3      -0.000989   0.011099  -0.089   0.92900   
+## log(INCH) -0.033511   0.020299  -1.651   0.09877 . 
 ## ---
 ## Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
 ```
 
-Whereas analytical bias-corrections for static models get more and more attention in applied work, it is not well known that they can also be used for dynamic models with fixed effects. 
+Whereas analytical bias corrections for static models get more and more attention in applied work, it is not well known that they can also be used for dynamic models with fixed effects. 
 
 Before we can adjust our static to a dynamic specification, we first have to generate a lagged dependent variable.
 ```{r, eval = FALSE}
@@ -143,7 +143,7 @@ setDT(psid)
 psid[, LLFP := shift(LFP), by = ID]
 ```
 
-Contrary to the bias-correction for the static models, we need to additionally provide a bandwidth parameter (`L`) that is required for the estimation of spectral densities (see @hk11). @fw16 suggest to do a sensitivity analysis and try different values for `L` but not larger than four.
+Contrary to the bias correction for the static models, we need to additionally provide a bandwidth parameter (`L`) that is required for the estimation of spectral densities (see @hk11). @fw16 suggest to do a sensitivity analysis and try different values for `L` but not larger than four. Note that in this case the order of factors to be concentrated out, specified in the second part of the formula, is important (cross-sectional identifier first and time identifier second).
 ```{r, eval = FALSE}
 dyn <- feglm(LFP ~ LLFP + KID1 + KID2 + KID3 + log(INCH) | ID + TIME, psid, binomial("probit"))
 dyn.bc <- biasCorr(dyn, L = 1L)
@@ -183,17 +183,17 @@ summary(apes.dyn.bc)
 ```{r, eval = FALSE}
 ## Estimates:
 ##            Estimate Std. error z value Pr(> |z|)   
-## LLFP       0.186312   0.070340   2.649   0.00808 **
-## KID1      -0.072324   0.027220  -2.657   0.00788 **
-## KID2      -0.025075   0.011242  -2.230   0.02572 * 
-## KID3       0.002489   0.004967   0.501   0.61632   
-## log(INCH) -0.030011   0.013689  -2.192   0.02835 * 
+## LLFP       0.186312   0.071057   2.622   0.00874 **
+## KID1      -0.072324   0.031894  -2.268   0.02335 * 
+## KID2      -0.025075   0.018730  -1.339   0.18063   
+## KID3       0.002489   0.011888   0.209   0.83419   
+## log(INCH) -0.030011   0.019928  -1.506   0.13207   
 ## ---
 ## Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
 ```
 
 ## Further Features 
 
-`alpaca` is also compatible with `linearHypothesis()` of the `car` package and offers the possibility to compute robust and multi-way clustered standard errors. For an example, see vignette "Replicating an Empirical Example of International Trade".
+`alpaca` is also compatible with `linearHypothesis()` of the `car` package and offers the possibility to compute robust and multi-way clustered standard errors. Further it supports the two- and three-way bias corrections suggested by @hsw19. For examples, see vignette "Estimating the intensive and extensive margin of trade".
 
 ## References

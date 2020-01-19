@@ -37,13 +37,13 @@ getFEs <- function(object = NULL, alpha.tol = 1.0e-08) {
   
   # Extract regressor matrix
   X <- model.matrix(object[["formula"]], object[["data"]], rhs = 1L)[, - 1L, drop = FALSE]
-  nms.sp <- attr(X, "dimnames")[[2L]] # Saves memory
+  nms.sp <- attr(X, "dimnames")[[2L]]
   attr(X, "dimnames") <- NULL
   
-  # Construct auxiliary matrix to flatten the fixed effects
+  # Construct auxilliary matrix to flatten the fixed effects
   lvls.k <- object[["lvls.k"]]
   k.vars <- names(lvls.k)
-  fe <- model.part(object[["formula"]], object[["data"]], rhs = 2L)
+  fe <- object[["data"]][, k.vars, with = FALSE]
   fe[, (k.vars) := lapply(.SD, as.integer)]
   A <- as.matrix(fe) - 1L
   dimnames(A) <- NULL

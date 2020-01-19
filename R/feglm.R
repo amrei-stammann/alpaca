@@ -77,7 +77,7 @@ feglm <- function(formula       = NULL,
   }
   
   # Validity of input argument (family)
-  # NOTE: Quasi families not supported since they are no maximum likelihood estimators
+  # NOTE: Quasi families not supported yet
   if (!inherits(family, "family")) {
     stop("'family' has to be of class family", call. = FALSE)
   } else if (family[["family"]] %in% c("quasi", "quasipoisson", "quasibinomial")) {
@@ -106,11 +106,13 @@ feglm <- function(formula       = NULL,
   }
   
   # Generate model.frame
-  data <- suppressWarnings(model.frame(formula, data))
   setDT(data)
+  data <- data[, all.vars(formula), with = FALSE]
   lhs <- names(data)[[1L]]
   nobs.full <- nrow(data)
-  nobs.na <- length(attr(data, "na.action"))
+  data <- na.omit(data)
+  nobs.na <- nobs.full - nrow(data)
+  nobs.full <- nrow(data)
   
   # Ensure that model response is in line with the choosen model
   if (family[["family"]] == "binomial") {
@@ -144,14 +146,14 @@ feglm <- function(formula       = NULL,
     }
   }
   
-  # Get names of the fixed effects variables
+  # Get names of the fixed effects variables and sort
   k.vars <- attr(terms(formula, rhs = 2L), "term.labels")
   k <- length(k.vars)
+  setkeyv(data, k.vars)
   
   # Drop observations that do not contribute to the loglikelihood
   if (family[["family"]] %in% c("binomial", "poisson")) {
     if (control[["drop.pc"]]) {
-      trms <- attr(data, "terms") # Store terms; required for model matrix
       tmp.var <- tempVar(data)
       for (i in k.vars) {
         data[, (tmp.var) := mean(get(lhs)), by = eval(i)]
@@ -162,8 +164,6 @@ feglm <- function(formula       = NULL,
         }
         data[, (tmp.var) := NULL]
       }
-      setattr(data, "terms", trms)
-      rm(trms)
     }
   }
   
@@ -183,7 +183,7 @@ feglm <- function(formula       = NULL,
   # Extract model response and regressor matrix
   y <- data[[1L]]
   X <- model.matrix(formula, data, rhs = 1L)[, - 1L, drop = FALSE]
-  nms.sp <- attr(X, "dimnames")[[2L]] # Saves memory
+  nms.sp <- attr(X, "dimnames")[[2L]]
   attr(X, "dimnames") <- NULL
   
   # Check for linear dependence in 'X'
@@ -239,8 +239,8 @@ feglm <- function(formula       = NULL,
   }
   rm(beta.start, eta.start)
   
-  # Ensure factors are consecutive integers and generate auxiliary matrices to center variables
-  fe <- model.part(formula, data, rhs = 2L)
+  # Ensure factors are consecutive integers and generate auxilliary matrices to center variables
+  fe <- data[, k.vars, with = FALSE]
   nms.fe <- lapply(fe, levels)
   fe[, (k.vars) := lapply(.SD, as.integer)]
   lvls.k <- sapply(fe, max)
@@ -383,6 +383,7 @@ feglmFit <- function(beta, eta, y, X, A, B, lvls.k, family, control) {
   wt <- rep(1.0, length(y))
   dev <- sum(family[["dev.resids"]](y, mu, wt))
   null.dev <- sum(family[["dev.resids"]](y, mean(y), wt))
+  z <- numeric(length(y))
   
   # Start maximization of the log-likelihood
   conv <- FALSE
@@ -390,16 +391,18 @@ feglmFit <- function(beta, eta, y, X, A, B, lvls.k, family, control) {
     # Compute weights and dependent variable
     mu.eta <- family[["mu.eta"]](eta)
     w.tilde <- sqrt(mu.eta^2 / family[["variance"]](mu))
-    nu <- as.vector((y - mu) / mu.eta)
+    nu <- (y - mu) / mu.eta
     
     # Centering variables
-    M <- centerVariables(cbind(nu, X) * w.tilde, w.tilde, A, B, lvls.k, control[["center.tol"]])
+    z <- as.vector(centerVariables(as.matrix((z + nu) * w.tilde), w.tilde,
+                                   A, B, lvls.k, control[["center.tol"]]))
+    X <- centerVariables(X * w.tilde, w.tilde, A, B, lvls.k, control[["center.tol"]])
     
     # Compute update step and update \eta
-    beta.upd <- qr.solve(M[, - 1L, drop = FALSE], M[, 1L])
-    eta.upd <- as.vector(nu - (M[, 1L] - M[, - 1L, drop = FALSE] %*% beta.upd) / w.tilde)
+    beta.upd <- qr.solve(X, z, min(1.0e-07, control[["dev.tol"]] / 1000.0))
+    eta.upd <- nu - (z - as.vector(X %*% beta.upd)) / w.tilde
     
-    # Stephalving based on residual deviance as common in glm's
+    # Stephalving based on residual deviance
     dev.old <- dev
     rho <- 1.0
     repeat {
@@ -426,7 +429,8 @@ feglmFit <- function(beta, eta, y, X, A, B, lvls.k, family, control) {
     
     # Progress information
     if (control[["trace"]]) {
-      cat("Deviance=", round(dev, 2L), "- Iteration=", iter, "\n")
+      cat("Deviance=", format(dev, digits = 5L, nsmall = 2L), "- Iteration=", iter, "\n")
+      cat("Estimate=", format(beta, digits = 3L, nsmall = 2L), "\n")
     }
     
     # Check termination condition
@@ -437,11 +441,15 @@ feglmFit <- function(beta, eta, y, X, A, B, lvls.k, family, control) {
       conv <- TRUE
       break
     }
+    
+    # Update starting guesses for acceleration
+    z <- z / w.tilde - nu
+    X <- X / w.tilde
   }
   
   # Compute Score and Hessian
-  G <- M[, - 1L, drop = FALSE] * M[, 1L]
-  H <- crossprod(M[, - 1L])
+  G <- X * z
+  H <- crossprod(X)
   
   # Return result list
   list(coefficients  = beta,
@@ -488,7 +496,7 @@ feglmOffset <- function(object, offset) {
   }
   
   # Construct auxiliary matrix to flatten the fixed effects
-  fe <- model.part(formula, object[["data"]], rhs = 2L)
+  fe <- object[["data"]][, k.vars, with = FALSE]
   fe[, (k.vars) := lapply(.SD, as.integer)]
   A <- as.matrix(fe) - 1L
   dimnames(A) <- NULL
@@ -500,17 +508,19 @@ feglmOffset <- function(object, offset) {
   mu <- family[["linkinv"]](eta)
   wt <- rep(1.0, nobs)
   dev <- sum(family[["dev.resids"]](y, mu, wt))
+  z <- numeric(length(y))
   
   # Start maximization of the log-likelihood
   for (iter in seq.int(control[["iter.max"]])) {
     # Compute weights and dependent variable
     mu.eta <- family[["mu.eta"]](eta)
     w.tilde <- sqrt(mu.eta^2 / family[["variance"]](mu))
-    q.tilde <- as.matrix(eta - offset + (y - mu) / mu.eta) * w.tilde
+    q <- eta - offset + (y - mu) / mu.eta
     
     # Centering dependent variable and compute \eta update
-    Mq <- centerVariables(q.tilde, w.tilde, A, B, lvls.k, control[["center.tol"]])
-    eta.upd <- as.vector((q.tilde - Mq)) / w.tilde + offset - eta
+    z <- as.vector(centerVariables(as.matrix((z + q) * w.tilde), w.tilde,
+                                   A, B, lvls.k, control[["center.tol"]]))
+    eta.upd <- q - z / w.tilde + offset - eta
     
     # Stephalving based on residual deviance as common in glm's
     dev.old <- dev
@@ -541,6 +551,9 @@ feglmOffset <- function(object, offset) {
     if ((dev.old - dev) / (0.1 + dev) < control[["dev.tol"]]) {
       break
     }
+    
+    # Update starting guess for acceleration
+    z <- z / w.tilde - q
   }
   
   # Return \eta

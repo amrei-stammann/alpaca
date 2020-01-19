@@ -5,9 +5,9 @@
 #' of the corresponding generalized linear model (glm). The package is restricted to glm's that are
 #' based on maximum likelihood estimation. This excludes all quasi-variants of glm. The package also
 #' offers an efficient algorithm to recover estimates of the fixed effects in a post-estimation
-#' routine and includes robust and multi-way clustered standard errors. Further the package provides 
-#' an analytical bias-correction for binary choice models (logit and probit) derived by 
-#' Fernandez-Val and Weidner (2016).
+#' routine and includes robust and multi-way clustered standard errors. Further the package provides analytical 
+#' bias corrections for binary choice models (logit and probit) derived by Fernandez-Val and 
+#' Weidner (2016) and Hinz, Stammann, and Wanner (2019).
 #' 
 #' \strong{Note:} Linear models are also beyond the scope of this package since there is already a
 #' comprehensive procedure available \link[lfe]{felm}.
@@ -16,16 +16,16 @@
 #' @docType
 #' package
 #' @importFrom
-#' data.table setattr setDT setkeyv := .SD
+#' data.table setDT setkeyv := .SD
 #' @importFrom
-#' Formula Formula model.part
+#' Formula Formula
 #' @importFrom
 #' MASS negative.binomial theta.ml
 #' @importFrom
 #' Rcpp evalCpp
 #' @importFrom
-#' stats as.formula binomial coef model.frame model.matrix poisson pnorm predict printCoefmat 
-#' rgamma rlogis rnorm rpois terms vcov
+#' stats as.formula binomial model.matrix na.omit poisson pnorm printCoefmat rgamma rlogis rnorm 
+#' rpois terms vcov
 #' @importFrom
 #' utils combn
 #' @useDynLib

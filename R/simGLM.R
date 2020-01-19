@@ -20,7 +20,8 @@
 #' @param
 #' seed a seed to ensure reproducibility.
 #' @param
-#' model a string equal to \code{"logit"}, \code{"poisson"}, or \code{"gamma"}.
+#' model a string equal to \code{"logit"}, \code{"poisson"}, or \code{"gamma"}. Default is 
+#' \code{"logit"}.
 #' @return
 #' The function \code{\link{simGLM}} returns a data.frame with 6 variables.
 #' @seealso

@@ -68,34 +68,32 @@ feglm.nb <- function(formula       = NULL,
   }
   
   # Generate model.frame
-  if (is.null(attr(data, "terms"))) {
-    data <- suppressWarnings(model.frame(formula, data))
-  }
   setDT(data)
+  data <- data[, all.vars(formula), with = FALSE]
   lhs <- names(data)[[1L]]
   nobs.full <- nrow(data)
-  nobs.na <- length(attr(data, "na.action"))
+  data <- na.omit(data)
+  nobs.na <- nobs.full - nrow(data)
+  nobs.full <- nrow(data)
   
   # Ensure that model response is in line with the choosen model
   if (data[, any(get(lhs) < 0.0)]) {
     stop("Model response has to be positive.", call. = FALSE)
   }
   
-  # Get names of the fixed effects variables
+  # Get names of the fixed effects variables and sort
   k.vars <- attr(terms(formula, rhs = 2L), "term.labels")
   k <- length(k.vars)
+  setkeyv(data, k.vars)
   
   # Drop observations that do not contribute to the loglikelihood
   if (control[["drop.pc"]]) {
-    trms <- attr(data, "terms") # Store terms; required for model matrix
     tmp.var <- tempVar(data)
     for (i in k.vars) {
       data[, (tmp.var) := mean(get(lhs)), by = eval(i)]
       data <- data[get(tmp.var) > 0.0]
       data[, (tmp.var) := NULL]
     }
-    setattr(data, "terms", trms)
-    rm(trms)
   }
   
   # Transform fixed effects variables and potential cluster variables to factors
@@ -114,7 +112,7 @@ feglm.nb <- function(formula       = NULL,
   # Extract model response and regressor matrix
   y <- data[[1L]]
   X <- model.matrix(formula, data, rhs = 1L)[, - 1L, drop = FALSE]
-  nms.sp <- attr(X, "dimnames")[[2L]] # Saves memory
+  nms.sp <- attr(X, "dimnames")[[2L]]
   attr(X, "dimnames") <- NULL
   
   # Check for linear dependence in 'X'
@@ -177,8 +175,8 @@ feglm.nb <- function(formula       = NULL,
   }
   rm(beta.start, eta.start, init.theta)
   
-  # Ensure factors are consecutive integers and generate auxiliary matrices to center variables
-  fe <- model.part(formula, data, rhs = 2L)
+  # Ensure factors are consecutive integers and generate auxilliary matrices to center variables
+  fe <- data[, k.vars, with = FALSE]
   nms.fe <- lapply(fe, levels)
   fe[, (k.vars) := lapply(.SD, as.integer)]
   lvls.k <- sapply(fe, max)

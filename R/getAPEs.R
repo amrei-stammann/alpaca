@@ -1,5 +1,6 @@
 #' @title
-#' Compute average partial effects after fitting binary choice models with two-way error component
+#' Compute average partial effects after fitting binary choice models with a two-/three-way error 
+#' component
 #' @description
 #' \code{\link{getAPEs}} is a post-estimation routine that can be used to estimate average partial 
 #' effects with respect to all covariates in the model and the corresponding covariance matrix. The 
@@ -19,6 +20,18 @@
 #' where \eqn{n^{\ast}}{n.pop} and \eqn{n}{n} are the size of the entire 
 #' population and the full sample size. Default is \code{NULL}, which refers to a factor of one and 
 #' is equal to an infinitely large population.
+#' @param
+#' panel.structure a string equal to \code{"classic"} or \code{"network"} which determines the 
+#' structure of the panel used. \code{"classic"} denotes panel structures where for example the same
+#' cross-sectional units are observed several times (this includes pseudo panels). 
+#' \code{"network"} denotes panel structures where for example bilateral trade flows are observed 
+#' for several time periods. Default is \code{"classic"}.
+#' @param
+#' sampling.fe a string equal to \code{"independence"} or \code{"unrestricted"} which imposes 
+#' sampling assumptions about the unobserved effects. \code{"independence"} imposes that all 
+#' unobserved effects are mutually independent sequences. \code{"unrestricted"} does not impose any
+#' sampling assumptions. Note that this option only affects the estimation of the covariance. 
+#' Default is \code{"independence"}.
 #' @param
 #' weak.exo logical indicating if some of the regressors are assumed to be weakly exogenous (e.g. 
 #' predetermined). If object is of class \code{"biasCorr"}, the option will be automatically set to 
@@ -40,6 +53,9 @@
 #' Fernandez-Val, I. and Weidner, M. (2018). "Fixed effects estimation of large-t panel data 
 #' models". Annual Review of Economics, 10, 109-138.
 #' @references
+#' Hinz, J., Stammann, A, and Wanner, J. (2019). "Persistent Zeros: The Extensive Margin of Trade".
+#' Working Paper.
+#' @references
 #' Neyman, J. and Scott, E. L. (1948). "Consistent estimates based on partially consistent 
 #' observations". Econometrica, 16(1), 1-32.
 #' @seealso
@@ -57,7 +73,7 @@
 #' mod.ape <- getAPEs(mod)
 #' summary(mod.ape)
 #' 
-#' # Apply analytical bias-correction
+#' # Apply analytical bias correction
 #' mod.bc <- biasCorr(mod)
 #' summary(mod.bc)
 #' 
@@ -66,7 +82,12 @@
 #' summary(mod.ape.bc)
 #' }
 #' @export
-getAPEs <- function(object = NULL, n.pop = NULL, weak.exo = FALSE) {
+getAPEs <- function(object          = NULL,
+                    n.pop           = NULL,
+                    panel.structure = c("classic", "network"),
+                    sampling.fe     = c("independence", "unrestricted"),
+                    weak.exo        = FALSE) {
+  # TODO: Add further average partial effects
   # Check validity of 'object'
   if (is.null(object)) {
     stop("'object' has to be specified.", call. = FALSE)
@@ -74,13 +95,36 @@ getAPEs <- function(object = NULL, n.pop = NULL, weak.exo = FALSE) {
     stop("'getAPEs' called on a non-'feglm' object.", call. = FALSE)
   }
   
-  # Check if provided object is a two-way logit or probit
-  # TODO: Add further average partial effects
-  if (object[["family"]][["family"]] != "binomial" |
-      !(object[["family"]][["link"]] %in% c("logit", "probit")) |
-      length(object[["lvls.k"]]) != 2L) {
-    stop(paste0("'getAPEs' currently only supports logit and probit models with 2-way error ", 
-                "component. Further models will be added in the future."), call. = FALSE)
+  # Extract prior information if available or check validity of 'panel.structure'
+  biascorr <- inherits(object, "biasCorr")
+  if (biascorr) {
+    panel.structure <- object[["panel.structure"]]
+    L <- object[["bandwidth"]]
+    if (L > 0L) {
+      weak.exo <- TRUE
+    } else {
+      weak.exo <- FALSE
+    }
+  } else {
+    panel.structure <- match.arg(panel.structure)
+  }
+  
+  # Check validity of 'sampling.fe'
+  sampling.fe <- match.arg(sampling.fe)
+  
+  # Check if provided object is suitable for requested bias correction
+  if (panel.structure == "classic") {
+    if (object[["family"]][["family"]] != "binomial" |
+        !(object[["family"]][["link"]] %in% c("logit", "probit")) |
+        length(object[["lvls.k"]]) != 2L) {
+      stop(paste("'getAPEs' currently only supports logit and probit models."), call. = FALSE)
+    }
+  } else {
+    if (object[["family"]][["family"]] != "binomial" |
+        !(object[["family"]][["link"]] %in% c("logit", "probit")) |
+        !(length(object[["lvls.k"]]) %in% c(2L, 3L))) {
+      stop(paste("'getAPEs' currently only supports logit and probit models."), call. = FALSE)
+    }
   }
   
   # Extract model information
@@ -91,6 +135,7 @@ getAPEs <- function(object = NULL, n.pop = NULL, weak.exo = FALSE) {
   control <- object[["control"]]
   nt.full <- object[["nobs"]][["nobs.full"]]
   nt <- object[["nobs"]][["nobs"]]
+  k <- length(lvls.k)
   p <- length(beta)
   
   # Check validity of 'n.pop'
@@ -110,15 +155,15 @@ getAPEs <- function(object = NULL, n.pop = NULL, weak.exo = FALSE) {
   # Extract model response and regressor matrix
   y <- object[["data"]][[1L]]
   X <- model.matrix(formula, object[["data"]], rhs = 1L)[, - 1L, drop = FALSE]
-  nms.sp <- attr(X, "dimnames")[[2L]] # Saves memory
+  nms.sp <- attr(X, "dimnames")[[2L]]
   attr(X, "dimnames") <- NULL
   
   # Determine which of the regressors are binary
   binary <- apply(X, 2L, function(x) all(x %in% c(0L, 1L)))
   
-  # Construct auxiliary matrix to flatten the fixed effects
+  # Construct auxilliary matrix to flatten the fixed effects
   k.vars <- names(lvls.k)
-  fe <- model.part(formula, object[["data"]], rhs = 2L)
+  fe <- object[["data"]][, k.vars, with = FALSE]
   fe[, (k.vars) := lapply(.SD, as.integer)]
   A <- as.matrix(fe) - 1L
   dimnames(A) <- NULL
@@ -137,7 +182,7 @@ getAPEs <- function(object = NULL, n.pop = NULL, weak.exo = FALSE) {
   PX <- X - object[["Score"]] / v
   
   # If object is of class 'biasCorr' update linear predictor and the corresponding probabilities
-  if (inherits(object, "biasCorr")) {
+  if (biascorr) {
     eta <- as.vector(X %*% beta)
     eta <- feglmOffset(object, eta)
     mu <- family[["linkinv"]](eta)
@@ -168,20 +213,19 @@ getAPEs <- function(object = NULL, n.pop = NULL, weak.exo = FALSE) {
       f1 <- family[["mu.eta"]](eta0 + beta[[i]])
       Delta[, i] <- family[["linkinv"]](eta0 + beta[[i]]) - family[["linkinv"]](eta0)
       Delta1[, i] <- f1 - family[["mu.eta"]](eta0)
-      J[i, ] <- - sum(PX[, i] * Delta1[, i])
+      J[i, ] <- - colSums(PX * Delta1[, i])
       J[i, i] <- sum(f1) + J[i, i]
-      J[i, - i] <- colSums(Delta1[, i] * X[, - i, drop = FALSE]) + J[i, - i]
+      J[i, - i] <- colSums(X[, - i, drop = FALSE] * Delta1[, i]) + J[i, - i]
       rm(eta0, f1)
     } else {
       Delta[, i] <- beta[[i]] * Delta[, i]
       Delta1[, i] <- beta[[i]] * Delta1[, i]
-      J[i, ] <- colSums((X - PX[, i]) * Delta1[, i])
+      J[i, ] <- colSums((X - PX) * Delta1[, i])
       J[i, i] <- sum(mu.eta) + J[i, i]
     }
   }
   delta <- colSums(Delta) / nt.full
   Delta <- t(t(Delta) - delta)
-  J <- J / nt.full
   rm(mu.eta, PX)
   
   # Compute projection and residual projection of \Psi
@@ -191,14 +235,7 @@ getAPEs <- function(object = NULL, n.pop = NULL, weak.exo = FALSE) {
   rm(Delta1)
   
   # Compute analytical bias-correction of average partial effects
-  if (inherits(object, "biasCorr")) {
-    # Check validity of 'L' and 'weak.exo'
-    L <- object[["bandwidth"]]
-    if (L == 0L && weak.exo) {
-      warning("Inconsistent choice of 'weak.exo'; argument set to FALSE.", call. = FALSE)
-      weak.exo <- FALSE
-    }
-    
+  if (biascorr) {
     # Compute second-order partial derivatives
     Delta2 <- matrix(NA_real_, nt, p)
     Delta2[, !binary] <- partialMuEta(eta, family, 3L)
@@ -212,31 +249,65 @@ getAPEs <- function(object = NULL, n.pop = NULL, weak.exo = FALSE) {
       }
     }
     
-    # Compute \hat{B}
-    b <- as.vector(groupSums(- PPsi * z + Delta2, w, A[, 1L], B[, 1L])) / 2.0
-    if (L > 0L) {
-      weak.exo <- TRUE
-      b <- b + as.vector(groupSumsSpectral(MPsi * w, v, w, L, A[, 1L], B[, 1L]))
+    # Compute bias terms for requested bias correction
+    if (panel.structure == "classic") {
+      # Compute \hat{B}
+      b <- as.vector(groupSums(- PPsi * z + Delta2, w, A[, 1L], B[, 1L])) / 2.0
+      if (weak.exo) {
+        b <- b + as.vector(groupSumsSpectral(MPsi * w, v, w, L, A[, 1L], B[, 1L]))
+      }
+      
+      # Compute \hat{D}
+      b <- b + as.vector(groupSums(- PPsi * z + Delta2, w, A[, 2L], B[, 2L])) / 2.0
+    } else {
+      # Compute \hat{D}_{1}
+      b <- as.vector(groupSums(- PPsi * z + Delta2, w, A[, 1L], B[, 1L])) / 2.0
+      
+      # Compute \hat{D}_{2}
+      b <- b + as.vector(groupSums(- PPsi * z + Delta2, w, A[, 2L], B[, 2L])) / 2.0
+      
+      # Compute \hat{B}
+      if (k == 3L) {
+        b <- b + as.vector(groupSums(- PPsi * z + Delta2, w, A[, 3L], B[, 3L])) / 2.0
+        if (weak.exo) {
+          b <- b + as.vector(groupSumsSpectral(MPsi * w, v, w, L, A[, 3L], B[, 3L]))
+        }
+      }
     }
-    
-    # Compute \hat{D}
-    d <- as.vector(groupSums(- PPsi * z + Delta2, w, A[, 2L], B[, 2L])) / 2.0
     rm(Delta2)
     
     # Compute bias-corrected average partial effects
-    delta <- delta - (b + d) / nt
+    delta <- delta - b / nt
   }
   rm(eta, mu, MPsi)
   
-  # Compute standard errors
-  J <- J %*% solve(object[["Hessian"]] / nt)
-  Gamma <- t(tcrossprod(J, object[["Score"]])) - PPsi * v
+  # Compute covariance matrix
+  J <- J %*% solve(object[["Hessian"]])
+  Gamma <- tcrossprod(object[["Score"]], J) - PPsi * v
   V <- crossprod(Gamma)
   if (adj > 0.0) {
-    V <- V + adj * (groupSumsVar(Delta, A[, 1L], B[, 1L]) + groupSumsVar(Delta, A[, 2L], B[, 2L]) - 
-                      crossprod(Delta))
+    # Simplify covariance if sampling assumptions are imposed
+    if (sampling.fe == "independence") {
+      V <- V + adj * (groupSumsVar(Delta, A[, 1L], B[, 1L]) + 
+                        groupSumsVar(Delta, A[, 2L], B[, 2L]) - crossprod(Delta))
+      if (panel.structure == "network") {
+        if (k == 3L) {
+          V <- V + adj * (groupSumsVar(Delta, A[, 3L], B[, 3L]) - crossprod(Delta))
+        }
+      }
+    } else {
+      V <- V + adj * tcrossprod(colSums(Delta))
+    }
+    
+    # Add covariance in case of weak exogeneity
     if (weak.exo) {
-      V <- V + adj * 2.0 * groupSumsCov(Delta, Gamma, A[, 1L], B[, 1L])
+      if (panel.structure == "classic") {
+        V <- V + adj * 2.0 * groupSumsCov(Delta, Gamma, A[, 1L], B[, 1L])
+      } else {
+        if (k == 3L) {
+          V <- V + adj * 2.0 * groupSumsCov(Delta, Gamma, A[, 3L], B[, 3L])
+        }
+      }
     }
   }
   V <- V / nt^2
@@ -246,5 +317,9 @@ getAPEs <- function(object = NULL, n.pop = NULL, weak.exo = FALSE) {
   dimnames(V) <- list(nms.sp, nms.sp)
   
   # Return list
-  structure(list(delta = delta, vcov = V), class = "APEs")
+  structure(list(delta           = delta,
+                 vcov            = V,
+                 panel.structure = panel.structure,
+                 sampling.fe     = sampling.fe,
+                 weak.exo        = weak.exo), class = "APEs")
 }

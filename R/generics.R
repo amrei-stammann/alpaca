@@ -39,6 +39,26 @@ coef.feglm <- function(object, ...) {
 
 
 #' @title
+#' Extract coefficient matrix of average partial effects
+#' @description
+#' \code{\link{coef.summary.APEs}} is a generic function which extracts a coefficient matrix of 
+#' average partial effects from objects returned by \code{\link{getAPEs}}.
+#' @param 
+#' object an object of class \code{"summary.APEs"}.
+#' @param 
+#' ... other arguments.
+#' @return
+#' The function \code{\link{coef.summary.APEs}} returns a named matrix of estimates related to the
+#' average partial effects.
+#' @seealso
+#' \code{\link{getAPEs}}
+#' @export
+coef.summary.APEs <- function(object, ...) {
+  object[["cm"]]
+}
+
+
+#' @title
 #' Extract coefficient matrix of structural parameters
 #' @description
 #' \code{\link{coef.summary.feglm}} is a generic function which extracts a coefficient matrix of 
@@ -75,6 +95,7 @@ coef.summary.feglm <- function(object, ...) {
 fitted.feglm <- function(object, ...) {
   object[["family"]][["linkinv"]](object[["eta"]])
 }
+
 
 #' @title
 #' Predict method for \code{feglm} fits
@@ -168,7 +189,7 @@ print.feglm <- function(x, digits = max(3L, getOption("digits") - 3L), ...) {
 #' @export
 print.summary.APEs <- function(x, digits = max(3L, getOption("digits") - 3L), ...) {
   cat("Estimates:\n")
-  printCoefmat(x, P.values = TRUE, has.Pvalue = TRUE, digits = digits)
+  printCoefmat(x[["cm"]], P.values = TRUE, has.Pvalue = TRUE, digits = digits)
 }
 
 
@@ -193,8 +214,12 @@ print.summary.feglm <- function(x, digits = max(3L, getOption("digits") - 3L), .
   print(x[["formula"]])
   cat("\nEstimates:\n")
   printCoefmat(x[["cm"]], P.values = TRUE, has.Pvalue = TRUE, digits = digits)
-  cat("\nresidual deviance= ", round(x[["deviance"]], 2L), ",\n", sep = "")
-  cat("null deviance= ", round(x[["null.deviance"]], 2L), ",\n", sep = "")
+  cat("\nresidual deviance= ",
+      format(x[["deviance"]], digits = max(5L, digits + 1L), nsmall = 2L),
+      ",\n", sep = "")
+  cat("null deviance= ",
+      format(x[["null.deviance"]], digits = max(5L, digits + 1L), nsmall = 2L),
+      ",\n", sep = "")
   cat("n= ", x[["nobs"]][["nobs"]],
       ", l= [", paste0(x[["lvls.k"]], collapse = ", "), "]\n", sep = "")
   if (x[["nobs"]][["nobs.na"]] > 0L | x[["nobs"]][["nobs.pc"]] > 0L) {
@@ -208,8 +233,11 @@ print.summary.feglm <- function(x, digits = max(3L, getOption("digits") - 3L), .
   }
   cat("\nNumber of Fisher Scoring Iterations:", x[["iter"]], "\n")
   if (!is.null(x[["theta"]])) {
-    cat("\ntheta= ", round(x[["theta"]], 3L),
-        ", std. error= ", round(attr(x[["theta"]], "SE"), 3L), "\n", sep = "")
+    cat("\ntheta= ",
+        format(x[["theta"]], digits = digits, nsmall = 2L),
+        ", std. error= ",
+        format(attr(x[["theta"]], "SE"), digits = digits, nsmall = 2L),
+        "\n", sep = "")
   }
 }
 
@@ -239,7 +267,7 @@ summary.APEs <- function(object, ...) {
   colnames(cm) <- c("Estimate", "Std. error", "z value", "Pr(> |z|)")
   
   # Return coefficient matrix
-  structure(cm, class = "summary.APEs")
+  structure(list(cm = cm), class = "summary.APEs")
 }
 
 
@@ -403,7 +431,7 @@ vcov.feglm <- function(object,
         
         # Extract cluster variables
         cluster <- Formula(cluster)
-        D <- try(model.part(cluster, object[["data"]], rhs = 1L), silent = TRUE)
+        D <- try(object[["data"]][, all.vars(cluster), with = FALSE], silent = TRUE)
         if (inherits(D, "try-error")) {
           stop(paste("At least one cluster variable was not found.",
                      "Ensure to pass variables that are not part of the model itself, but are", 
@@ -431,8 +459,8 @@ vcov.feglm <- function(object,
           for (j in seq.int(ncol(cl.combn))) {
             cl <- cl.combn[, j]
             B.r <- B.r + 
-              crossprod(as.matrix(G[, lapply(.SD, sum),
-                                    by = cl, .SDcols = sp.vars][, sp.vars, with = FALSE]))
+              crossprod(as.matrix(
+                G[, lapply(.SD, sum), by = cl, .SDcols = sp.vars][, sp.vars, with = FALSE]))
           }
           
           # Update outer product

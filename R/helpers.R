@@ -17,14 +17,18 @@ partialMuEta <- function(eta, family, order) {
   if (order == 2L) {
     if (family[["link"]] == "logit") {
       f * (1.0 - 2.0 * family[["linkinv"]](eta))
-    } else {
+    } else if (family[["link"]] == "probit") {
       - eta * f
+    } else {
+      f * (1.0 - exp(eta))
     }
   } else {
     if (family[["link"]] == "logit") {
       f * ((1.0 - 2.0 * family[["linkinv"]](eta))^2 - 2.0 * f)
-    } else {
+    } else if (family[["link"]] == "probit") {
       (eta^2 - 1.0) * f
+    } else {
+      f * (1.0 - exp(eta)) * (2.0 - exp(eta)) - f
     }
   }
 }
@@ -42,6 +46,7 @@ tempVar <- function(data) {
 }
 
 
-
 # Unload
-.onUnload <- function(libpath) library.dynam.unload("alpaca", libpath)
+.onUnload <- function(libpath) {
+  library.dynam.unload("alpaca", libpath)
+}

@@ -40,7 +40,7 @@ arma::vec GroupSums(const arma::mat &kM,
     b += (num / denom).t();
   }
   
-  // Return matrix 
+  // Return vector
   return b;
 }
 
@@ -82,11 +82,9 @@ arma::vec GroupSumsSpectral(const arma::mat &kM,
     // Compute numerator given a bandwidth 'kL'
     arma::rowvec num(kp, arma::fill::zeros);
     for (int l = 1 ; l <= kL ; ++l) {
-      arma::rowvec num_l(kp, arma::fill::zeros);
       for (int t = l ; t < kTi ; ++t) {
-        num_l += M.row(ki1 + t) * v(ki1 + t - l);
+        num += M.row(ki1 + t) * v(ki1 + t - l) * kTi / (kTi - l);
       }
-      num += num_l * kTi / (kTi - l);
     }
     
     // Compute denominator
@@ -99,7 +97,7 @@ arma::vec GroupSumsSpectral(const arma::mat &kM,
     b += (num / denom).t();
   }
   
-  // Return matrix 
+  // Return vector
   return b;
 }
 
