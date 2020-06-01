@@ -16,10 +16,11 @@ Description: Provides a routine to concentrate out factors with many levels duri
   and Weidner (2016) <doi:10.1016/j.jeconom.2015.12.014> and Hinz, Stammann, and Wanner (2019).
 License: GPL-3
 Depends: R (>= 3.1.0)
-Imports: data.table, Formula, MASS, Rcpp, stats, utils
+Imports: data.table, Formula, MASS, Rcpp, stats, utils, generics
 LinkingTo: Rcpp, RcppArmadillo
 URL: https://github.com/amrei-stammann/alpaca
 BugReports: https://github.com/amrei-stammann/alpaca/issues
-RoxygenNote: 7.0.2
+RoxygenNote: 7.1.0
 Suggests: bife, car, knitr, lfe
 VignetteBuilder: knitr
+Encoding: UTF-8
