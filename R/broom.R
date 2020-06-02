@@ -186,6 +186,8 @@ augment.feglm <- function(x, data = x$data, ...) {
   resid_vals <- as.vector(data[[1]]) - fitted_vals
   df$`.fitted` <- fitted_vals
   df$`.resid` <- resid_vals
+
+  df
 }
 
 #' @title Glance at a(n) feglm object
