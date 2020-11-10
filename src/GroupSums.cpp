@@ -3,41 +3,42 @@
 
 
 // [[Rcpp::export(name = "groupSums")]]
-arma::vec GroupSums(const arma::mat &kM,
-                    const arma::vec &kw,
-                    const arma::ivec &ka,
-                    const arma::ivec &kb) {
-  // Auxiliary variables
-  const int kn = kM.n_rows;
-  const int kp = kM.n_cols;
-  const int kl = ka.max() + 1;
+arma::vec GroupSums(const arma::mat& M,
+                    const arma::vec& w,
+                    const Rcpp::List& jlist) {
+  // Auxiliary variables (fixed)
+  const int J = jlist.size();
+  const int P = M.n_cols;
   
-  // Sort by grouping variable
-  arma::ivec a(kn);
-  arma::mat M(kn, kp);
-  arma::vec w(kn);
-  for (int i = 0 ; i < kn ; ++i) {
-    const int kb_i = kb(i);
-    a(i) = ka(kb_i);
-    M.row(i) = kM.row(kb_i);
-    w(i) = kw(kb_i);
-  }
-
-  // Compute sum of weighted group sums using sorted data
-  arma::vec b(kp, arma::fill::zeros);
-  int i = 0;
-  for (int j = 0 ; j < kl ; ++j) {
-    // Compute numerator and denominator
-    arma::rowvec num(kp, arma::fill::zeros);
-    double denom = 0.0;
-    while (i < kn && a(i) == j) {
-      num += M.row(i);
-      denom += w(i);
-      ++i;
+  // Auxiliary variables (storage)
+  double denom;
+  int j, p, t, T;
+  arma::vec b(P);
+  arma::vec num(P);
+  
+  // Compute sum of weighted group sums
+  b.zeros();
+  for (j = 0 ; j < J ; ++j) {
+    // Subset j-th group
+    Rcpp::IntegerVector indexes = jlist[j];
+    T = indexes.size();
+    
+    // Compute numerator of the weighted group sum
+    num.zeros();
+    for (p = 0 ; p < P ; ++p) {
+      for (t = 0 ; t < T ; ++t) {
+        num(p) += M(indexes[t], p);
+      }
+    }
+    
+    // Compute denominator of the weighted group sum
+    denom = 0.0;
+    for (t = 0 ; t < T ; ++t) {
+      denom += w(indexes[t]);
     }
     
     // Add weighted group sum
-    b += (num / denom).t();
+    b += num / denom;
   }
   
   // Return vector
@@ -46,55 +47,46 @@ arma::vec GroupSums(const arma::mat &kM,
 
 
 // [[Rcpp::export(name = "groupSumsSpectral")]]
-arma::vec GroupSumsSpectral(const arma::mat &kM,
-                            const arma::vec &kv,
-                            const arma::vec &kw,
-                            const int kL,
-                            const arma::ivec &ka,
-                            const arma::ivec &kb) {
-  // Auxiliary variables
-  const int kn = kM.n_rows;
-  const int kp = kM.n_cols;
-  const int kl = ka.max() + 1;
+arma::vec GroupSumsSpectral(const arma::mat& M,
+                            const arma::vec& v,
+                            const arma::vec& w,
+                            const int L,
+                            const Rcpp::List& jlist) {
+  // Auxiliary variables (fixed)
+  const int J = jlist.size();
+  const int P = M.n_cols;
   
-  // Sort by grouping variable
-  arma::ivec a(kn);
-  arma::mat M(kn, kp);
-  arma::vec v(kn);
-  arma::vec w(kn);
-  for (int i = 0 ; i < kn ; ++i) {
-    const int kb_i = kb(i);
-    a(i) = ka(kb_i);
-    M.row(i) = kM.row(kb_i);
-    v(i) = kv(kb_i);
-    w(i) = kw(kb_i);
-  }
+  // Auxiliary variables (storage)
+  double denom;
+  int j, l, p, t, T;
+  arma::vec b(P);
+  arma::vec num(P);
   
-  // Compute sum of weighted group sums using sorted data
-  arma::vec b(kp, arma::fill::zeros);
-  int i = 0;
-  for (int j = 0 ; j < kl ; ++j) {
-    // Subset individual 'j'
-    const int ki1 = i;
-    while (i < kn && a(i) == j) ++i;
-    const int kTi = i - ki1;
+  // Compute sum of weighted group sums
+  b.zeros();
+  for (j = 0 ; j < J ; ++j) {
+    // Subset j-th group
+    Rcpp::IntegerVector indexes = jlist[j];
+    T = indexes.size();
     
-    // Compute numerator given a bandwidth 'kL'
-    arma::rowvec num(kp, arma::fill::zeros);
-    for (int l = 1 ; l <= kL ; ++l) {
-      for (int t = l ; t < kTi ; ++t) {
-        num += M.row(ki1 + t) * v(ki1 + t - l) * kTi / (kTi - l);
+    // Compute numerator of the weighted group sum given bandwidth 'L'
+    num.zeros();
+    for (p = 0 ; p < P ; ++p) {
+      for (l = 1 ; l <= L ; ++l) {
+        for (t = l ; t < T ; ++t) {
+          num(p) += M(indexes[t], p) * v(indexes[t - l]) * T / (T - l);
+        }
       }
     }
     
-    // Compute denominator
-    double denom = 0.0;
-    for (int t = 0 ; t < kTi ; ++t) {
-      denom += w(ki1 + t);
+    // Compute denominator of the weighted group sum
+    denom = 0.0;
+    for (t = 0 ; t < T ; ++t) {
+      denom += w(indexes[t]);
     }
     
     // Add weighted group sum
-    b += (num / denom).t();
+    b += num / denom;
   }
   
   // Return vector
@@ -103,33 +95,34 @@ arma::vec GroupSumsSpectral(const arma::mat &kM,
 
 
 // [[Rcpp::export(name = "groupSumsVar")]]
-arma::mat GroupSumsVar(const arma::mat &kM,
-                       const arma::ivec &ka,
-                       const arma::ivec &kb) {
-  // Auxiliary variables
-  const int kn = kM.n_rows;
-  const int kp = kM.n_cols;
-  const int kl = ka.max() + 1;
+arma::mat GroupSumsVar(const arma::mat& M,
+                       const Rcpp::List& jlist) {
+  // Auxiliary variables (fixed)
+  const int J = jlist.size();
+  const int P = M.n_cols;
   
-  // Sort by grouping variable
-  arma::ivec a(kn);
-  arma::mat M(kn, kp);
-  for (int i = 0 ; i < kn ; ++i) {
-    const int kb_i = kb(i);
-    a(i) = ka(kb_i);
-    M.row(i) = kM.row(kb_i);
-  }
+  // Auxiliary variables (storage)
+  int j, p, t, T;
+  arma::vec v(P);
+  arma::mat V(P, P);
   
-  // Compute group sum using sorted data
-  arma::mat V(kp, kp, arma::fill::zeros);
-  int i = 0;
-  for (int j = 0 ; j < kl ; ++j) {
-    arma::rowvec v(kp, arma::fill::zeros);
-    while (i < kn && a(i) == j) {
-      v += M.row(i);
-      ++i;
+  // Compute covariance matrix
+  V.zeros();
+  for (j = 0 ; j < J ; ++j) {
+    // Subset j-th group
+    Rcpp::IntegerVector indexes = jlist[j];
+    T = indexes.size();
+    
+    // Compute group sum
+    v.zeros();
+    for (p = 0 ; p < P ; ++p) {
+      for (t = 0 ; t < T ; ++t) {
+        v(p) += M(indexes[t], p);
+      }
     }
-    V += v.t() * v;
+    
+    // Add to covariance matrix
+    V += v * v.t();
   }
   
   // Return matrix 
@@ -138,36 +131,32 @@ arma::mat GroupSumsVar(const arma::mat &kM,
 
 
 // [[Rcpp::export(name = "groupSumsCov")]]
-arma::mat GroupSumsCov(const arma::mat &kM,
-                       const arma::mat &kN,
-                       const arma::ivec &ka,
-                       const arma::ivec &kb) {
-  // Auxiliary variables
-  const int kn = kM.n_rows;
-  const int kp = kM.n_cols;
-  const int kl = ka.max() + 1;
+arma::mat GroupSumsCov(const arma::mat& M,
+                       const arma::mat& N,
+                       const Rcpp::List& jlist) {
+  // Auxiliary variables (fixed)
+  const int J = jlist.size();
+  const int P = M.n_cols;
   
-  // Sort by grouping variable
-  arma::ivec a(kn);
-  arma::mat M(kn, kp);
-  arma::mat N(kn, kp);
-  for (int i = 0 ; i < kn ; ++i) {
-    const int kb_i = kb(i);
-    a(i) = ka(kb_i);
-    M.row(i) = kM.row(kb_i);
-    N.row(i) = kN.row(kb_i);
-  }
+  // Auxiliary variables (storage)
+  int j, p, q, t, s, T;
+  arma::mat V(P, P);
   
-  // Compute group sums using sorted data
-  arma::mat V(kp, kp, arma::fill::zeros);
-  int i = 0;
-  for (int j = 0 ; j < kl ; ++j) {
-    const int ki1 = i;
-    while (i < kn && a(i) == j) ++i;
-    const int kTi = i - ki1;
-    for (int t = 0 ; t < kTi ; ++t) {
-      for (int s = t + 1 ; s < kTi ; ++s) {
-        V += M.row(ki1 + t).t() * N.row(ki1 + s);
+  // Compute covariance matrix
+  V.zeros();
+  for (j = 0 ; j < J ; ++j) {
+    // Subset j-th group
+    Rcpp::IntegerVector indexes = jlist[j];
+    T = indexes.size();
+    
+    // Add to covariance matrix
+    for (p = 0 ; p < P ; ++p) {
+      for (q = 0 ; q < P ; ++q) {
+        for (t = 0 ; t < T ; ++t) {
+          for (s = t + 1 ; s < T ; ++s) {
+            V(q, p) += M(indexes[t], q) * N(indexes[s], p);
+          }
+        }
       }
     }
   }

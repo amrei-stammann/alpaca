@@ -13,9 +13,9 @@ with \code{"logit"} or \code{"probit"} link function.}
 
 \item{L}{unsigned integer indicating a bandwidth for the estimation of spectral densities proposed by 
 Hahn and Kuersteiner (2011). Default is zero, which should be used if all regressors are 
-assumed to be strictly exogenous. In the presence of weakly exogenous or predetermined 
-regressors, Fernandez-Val and Weidner (2016, 2018) suggest to choose a bandwidth not higher than 
-four. Note that the order of factors to be concentrated out is important for bandwidths larger 
+assumed to be strictly exogenous with respect to the error term. In the presence of weakly exogenous 
+or predetermined regressors, Fernández-Val and Weidner (2016, 2018) suggest to choose a bandwidth 
+zero and four. Note that the order of factors to be partialed out is important for bandwidths larger 
 than zero (see vignette for details).}
 
 \item{panel.structure}{a string equal to \code{"classic"} or \code{"network"} which determines the 
@@ -31,10 +31,10 @@ The function \code{\link{biasCorr}} returns a named list of classes \code{"biasC
 \description{
 \code{\link{biasCorr}} is a post-estimation routine that can be used to substantially reduce the 
 incidental parameter bias problem (Neyman and Scott (1948)) present in non-linear fixed effects 
-models (see Fernandez-Val and Weidner (2018) for an overview). The command applies the analytical 
-bias correction derived by Fernandez-Val and Weinder (2016) and Hinz, Stammann, and Wanner (2019) 
+models (see Fernández-Val and Weidner (2018) for an overview). The command applies the analytical 
+bias correction derived by Fernández-Val and Weinder (2016) and Hinz, Stammann, and Wanner (2020) 
 to obtain bias-corrected estimates of the structural parameters and is currently restricted to 
-logit and probit models.
+logit and probit models with two- and three-way fixed effects.
 }
 \examples{
 \donttest{
@@ -51,22 +51,22 @@ summary(mod.bc)
 }
 }
 \references{
-Czarnowske, D. and Stammann, A. (2019). "Binary Choice Models with High-Dimensional Individual 
-and Time Fixed Effects". ArXiv e-prints.
+Czarnowske, D. and A. Stammann (2020). "Fixed Effects Binary Choice Models: Estimation and Inference
+with Long Panels". ArXiv e-prints.
 
-Fernandez-Val, I. and Weidner, M. (2016). "Individual and time effects in nonlinear panel models 
+Fernández-Val, I. and M. Weidner (2016). "Individual and time effects in nonlinear panel models 
 with large N, T". Journal of Econometrics, 192(1), 291-312.
 
-Fernandez-Val, I. and Weidner, M. (2018). "Fixed effects estimation of large-t panel data 
+Fernández-Val, I. and M. Weidner (2018). "Fixed effects estimation of large-t panel data 
 models". Annual Review of Economics, 10, 109-138.
 
-Hahn, J. and Kuersteiner, G. (2011). "Bias reduction for dynamic nonlinear panel models with 
+Hahn, J. and G. Kuersteiner (2011). "Bias reduction for dynamic nonlinear panel models with 
 fixed effects". Econometric Theory, 27(6), 1152-1191.
 
-Hinz, J., Stammann, A, and Wanner, J. (2019). "Persistent Zeros: The Extensive Margin of Trade".
-Working Paper.
+Hinz, J., A. Stammann, and J. Wanner (2020). "State Dependence and Unobserved Heterogeneity
+in the Extensive Margin of Trade". ArXiv e-prints.
 
-Neyman, J. and Scott, E. L. (1948). "Consistent estimates based on partially consistent 
+Neyman, J. and E. L. Scott (1948). "Consistent estimates based on partially consistent 
 observations". Econometrica, 16(1), 1-32.
 }
 \seealso{

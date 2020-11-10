@@ -4,19 +4,19 @@
 #' @description
 #' \code{\link{biasCorr}} is a post-estimation routine that can be used to substantially reduce the 
 #' incidental parameter bias problem (Neyman and Scott (1948)) present in non-linear fixed effects 
-#' models (see Fernandez-Val and Weidner (2018) for an overview). The command applies the analytical 
-#' bias correction derived by Fernandez-Val and Weinder (2016) and Hinz, Stammann, and Wanner (2019) 
+#' models (see Fernández-Val and Weidner (2018) for an overview). The command applies the analytical 
+#' bias correction derived by Fernández-Val and Weinder (2016) and Hinz, Stammann, and Wanner (2020) 
 #' to obtain bias-corrected estimates of the structural parameters and is currently restricted to 
-#' logit and probit models.
+#' logit and probit models with two- and three-way fixed effects.
 #' @param
 #' object an object of class \code{"feglm"}; currently restricted to \code{\link[stats]{binomial}} 
 #' with \code{"logit"} or \code{"probit"} link function.
 #' @param
 #' L unsigned integer indicating a bandwidth for the estimation of spectral densities proposed by 
 #' Hahn and Kuersteiner (2011). Default is zero, which should be used if all regressors are 
-#' assumed to be strictly exogenous. In the presence of weakly exogenous or predetermined 
-#' regressors, Fernandez-Val and Weidner (2016, 2018) suggest to choose a bandwidth not higher than 
-#' four. Note that the order of factors to be concentrated out is important for bandwidths larger 
+#' assumed to be strictly exogenous with respect to the error term. In the presence of weakly exogenous 
+#' or predetermined regressors, Fernández-Val and Weidner (2016, 2018) suggest to choose a bandwidth 
+#' zero and four. Note that the order of factors to be partialed out is important for bandwidths larger 
 #' than zero (see vignette for details).
 #' @param
 #' panel.structure a string equal to \code{"classic"} or \code{"network"} which determines the 
@@ -28,22 +28,22 @@
 #' The function \code{\link{biasCorr}} returns a named list of classes \code{"biasCorr"} and 
 #' \code{"feglm"}.
 #' @references
-#' Czarnowske, D. and Stammann, A. (2019). "Binary Choice Models with High-Dimensional Individual 
-#' and Time Fixed Effects". ArXiv e-prints.
+#' Czarnowske, D. and A. Stammann (2020). "Fixed Effects Binary Choice Models: Estimation and Inference
+#' with Long Panels". ArXiv e-prints.
 #' @references
-#' Fernandez-Val, I. and Weidner, M. (2016). "Individual and time effects in nonlinear panel models 
+#' Fernández-Val, I. and M. Weidner (2016). "Individual and time effects in nonlinear panel models 
 #' with large N, T". Journal of Econometrics, 192(1), 291-312.
 #' @references
-#' Fernandez-Val, I. and Weidner, M. (2018). "Fixed effects estimation of large-t panel data 
+#' Fernández-Val, I. and M. Weidner (2018). "Fixed effects estimation of large-t panel data 
 #' models". Annual Review of Economics, 10, 109-138.
 #' @references
-#' Hahn, J. and Kuersteiner, G. (2011). "Bias reduction for dynamic nonlinear panel models with 
+#' Hahn, J. and G. Kuersteiner (2011). "Bias reduction for dynamic nonlinear panel models with 
 #' fixed effects". Econometric Theory, 27(6), 1152-1191.
 #' @references
-#' Hinz, J., Stammann, A, and Wanner, J. (2019). "Persistent Zeros: The Extensive Margin of Trade".
-#' Working Paper.
+#' Hinz, J., A. Stammann, and J. Wanner (2020). "State Dependence and Unobserved Heterogeneity
+#' in the Extensive Margin of Trade". ArXiv e-prints.
 #' @references
-#' Neyman, J. and Scott, E. L. (1948). "Consistent estimates based on partially consistent 
+#' Neyman, J. and E. L. Scott (1948). "Consistent estimates based on partially consistent 
 #' observations". Econometrica, 16(1), 1-32.
 #' @seealso
 #' \code{\link{feglm}}
@@ -75,45 +75,42 @@ biasCorr <- function(object          = NULL,
   # Check validity of 'panel.structure'
   panel.structure <- match.arg(panel.structure)
   
-  # Check if provided object is suitable for requested bias correction
-  if (panel.structure == "classic") {
-    if (object[["family"]][["family"]] != "binomial" |
-        !(object[["family"]][["link"]] %in% c("logit", "probit")) |
-        length(object[["lvls.k"]]) != 2L) {
-      stop(paste("'biasCorr' currently only supports logit and probit models."), call. = FALSE)
-    }
-  } else {
-    if (object[["family"]][["family"]] != "binomial" |
-        !(object[["family"]][["link"]] %in% c("logit", "probit")) |
-        !(length(object[["lvls.k"]]) %in% c(2L, 3L))) {
-      stop(paste("'biasCorr' currently only supports logit and probit models."), call. = FALSE)
-    }
-  }
-  
   # Extract model information
-  formula <- object[["formula"]]
-  family <- object[["family"]]
-  lvls.k <- object[["lvls.k"]]
   control <- object[["control"]]
+  data <- object[["data"]]
+  family <- object[["family"]]
+  formula <- object[["formula"]]
+  lvls.k <- object[["lvls.k"]]
+  k.vars <- names(lvls.k)
   k <- length(lvls.k)
   
-  # Extract model response and regressor matrix
-  y <- object[["data"]][[1L]]
-  if (!all(y %in% c(0L, 1L))) {
-    stop("'biasCorr' currently only supports 'true' binary choice models.", call. = FALSE)
+  # Check if binary choice model
+  if (family[["family"]] != "binomial" || !(family[["link"]] %in% c("logit", "probit"))) {
+    stop(paste("'biasCorr' currently only supports logit and probit models."), call. = FALSE)
   }
-  X <- model.matrix(formula, object[["data"]], rhs = 1L)[, - 1L, drop = FALSE]
+  
+  # Check if provided object matches requested panel structure
+  if (panel.structure == "classic") {
+    if (length(lvls.k) != 2L) {
+      stop(paste("panel.structure == 'classic' expects a two-way fixed effects model."), call. = FALSE)
+    }
+  } else {
+    if (!(length(lvls.k) %in% c(2L, 3L))) {
+      stop(paste("panel.structure == 'network' expects a two- or three-way fixed effects model."), call. = FALSE)
+    }
+  }
+  
+  # Extract model response and regressor matrix
+  y <- data[[1L]]
+  if (!all(y %in% c(0L, 1L))) {
+    stop("'biasCorr' currently only supports models with binary outcome.", call. = FALSE)
+  }
+  X <- model.matrix(formula, data, rhs = 1L)[, - 1L, drop = FALSE]
   nms.sp <- attr(X, "dimnames")[[2L]]
   attr(X, "dimnames") <- NULL
   
-  # Construct auxilliary matrix to flatten the fixed effects
-  k.vars <- names(lvls.k)
-  fe <- object[["data"]][, k.vars, with = FALSE]
-  fe[, (k.vars) := lapply(.SD, as.integer)]
-  A <- as.matrix(fe) - 1L
-  dimnames(A) <- NULL
-  rm(fe)
-  B <- apply(A, 2L, order) - 1L
+  # Generate auxiliary list of indexes for different sub panels
+  k.list <- getIndexList(k.vars, data)
   
   # Compute derivatives and weights
   eta <- object[["eta"]]
@@ -136,25 +133,25 @@ biasCorr <- function(object          = NULL,
   # Compute bias terms for requested bias correction
   if (panel.structure == "classic") {
     # Compute \hat{B}
-    b <- as.vector(groupSums(MX * z, w, A[, 1L], B[, 1L])) / 2.0
+    b <- as.vector(groupSums(MX * z, w, k.list[[1L]])) / 2.0
     if (L > 0L) {
-      b <- b + as.vector(groupSumsSpectral(MX * w, v, w, L, A[, 1L], B[, 1L]))
+      b <- b + as.vector(groupSumsSpectral(MX * w, v, w, L, k.list[[1L]]))
     }
     
     # Compute \hat{D}
-    b <- b + as.vector(groupSums(MX * z, w, A[, 2L], B[, 2L])) / 2.0
+    b <- b + as.vector(groupSums(MX * z, w, k.list[[2L]])) / 2.0
   } else {
     # Compute \hat{D}_{1}
-    b <- as.vector(groupSums(MX * z, w, A[, 1L], B[, 1L])) / 2.0
+    b <- as.vector(groupSums(MX * z, w, k.list[[1L]])) / 2.0
     
     # Compute \hat{D}_{2}
-    b <- b + as.vector(groupSums(MX * z, w, A[, 2L], B[, 2L])) / 2.0
+    b <- b + as.vector(groupSums(MX * z, w, k.list[[2L]])) / 2.0
     
     # Compute \hat{B}
     if (k == 3L) {
-      b <- b + as.vector(groupSums(MX * z, w, A[, 3L], B[, 3L])) / 2.0
+      b <- b + as.vector(groupSums(MX * z, w, k.list[[3L]])) / 2.0
       if (L > 0L) {
-        b <- b + as.vector(groupSumsSpectral(MX * w, v, w, L, A[, 3L], B[, 3L]))
+        b <- b + as.vector(groupSumsSpectral(MX * w, v, w, L, k.list[[3L]]))
       }
     }
   }

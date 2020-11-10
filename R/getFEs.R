@@ -35,35 +35,35 @@ getFEs <- function(object = NULL, alpha.tol = 1.0e-08) {
     stop("'getFEs' called on a non-'feglm' object.", call. = FALSE)
   }
   
+  # Extract required quantities from result list
+  beta <- object[["coefficients"]]
+  data <- object[["data"]]
+  eta <- object[["eta"]]
+  formula <- object[["formula"]]
+  lvls.k <- object[["lvls.k"]]
+  nms.fe <- object[["nms.fe"]]
+  k.vars <- names(lvls.k)
+  k <- length(lvls.k)
+  
   # Extract regressor matrix
-  X <- model.matrix(object[["formula"]], object[["data"]], rhs = 1L)[, - 1L, drop = FALSE]
+  X <- model.matrix(formula, data, rhs = 1L)[, - 1L, drop = FALSE]
   nms.sp <- attr(X, "dimnames")[[2L]]
   attr(X, "dimnames") <- NULL
   
-  # Construct auxilliary matrix to flatten the fixed effects
-  lvls.k <- object[["lvls.k"]]
-  k.vars <- names(lvls.k)
-  fe <- object[["data"]][, k.vars, with = FALSE]
-  fe[, (k.vars) := lapply(.SD, as.integer)]
-  A <- as.matrix(fe) - 1L
-  dimnames(A) <- NULL
-  rm(fe)
-  B <- apply(A, 2L, order) - 1L
+  # Generate auxiliary list of indexes for different sub panels
+  k.list <- getIndexList(k.vars, data)
   
-  # Recover fixed effects by alternating between the solution of normal equations
-  pi <- object[["eta"]] - as.vector(X %*% object[["coefficients"]])
-  alpha <- as.vector(getAlpha(pi, lvls.k, A, B, alpha.tol))
+  # Recover fixed effects by alternating between the solutions of normal equations
+  pi <- eta - as.vector(X %*% beta)
+  fe.list <- as.list(getAlpha(pi, k.list, alpha.tol))
   
-  # Generate a list with one vector for each fixed effects category
-  k <- length(lvls.k)
-  tmp.var <- c(0L, cumsum(lvls.k))
-  fe <- vector("list", k)
+  # Assign names to the different fixed effects categories
   for (i in seq.int(k)) {
-    fe[[i]] <- alpha[seq(tmp.var[[i]] + 1L, tmp.var[[i + 1L]])]
-    names(fe[[i]]) <- object[["nms.fe"]][[i]]
+    fe.list[[i]] <- as.vector(fe.list[[i]])
+    names(fe.list[[i]]) <- nms.fe[[i]]
   }
-  names(fe) <- k.vars
+  names(fe.list) <- k.vars
   
-  # Return list of fixed effects estimates
-  fe
+  # Return list of estimated fixed effects
+  fe.list
 }

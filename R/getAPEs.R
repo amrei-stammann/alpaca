@@ -15,7 +15,7 @@
 #' @param
 #' n.pop unsigned integer indicating a finite population correction for the estimation of the 
 #' covariance matrix of the average partial effects proposed by 
-#' Cruz-Gonzalez, Fernandez-Val, and Weidner (2017). The correction factor is computed as follows: 
+#' Cruz-Gonzalez, Fernández-Val, and Weidner (2017). The correction factor is computed as follows: 
 #' \eqn{(n^{\ast} - n) / (n^{\ast} - 1)}{(n.pop - n) / (n.pop - 1)}, 
 #' where \eqn{n^{\ast}}{n.pop} and \eqn{n}{n} are the size of the entire 
 #' population and the full sample size. Default is \code{NULL}, which refers to a factor of one and 
@@ -41,22 +41,22 @@
 #' @return
 #' The function \code{\link{getAPEs}} returns a named list of class \code{"APEs"}.
 #' @references
-#' Cruz-Gonzalez, M., Fernandez-Val, I., and Weidner, M. (2017). "Bias corrections for probit and 
+#' Cruz-Gonzalez, M., I. Fernández-Val, and M. Weidner (2017). "Bias corrections for probit and 
 #' logit models with two-way fixed effects". The Stata Journal, 17(3), 517-545.
 #' @references
-#' Czarnowske, D. and Stammann, A. (2019). "Binary Choice Models with High-Dimensional Individual 
-#' and Time Fixed Effects". ArXiv e-prints.
+#' Czarnowske, D. and A. Stammann (2020). "Fixed Effects Binary Choice Models: Estimation and Inference
+#' with Long Panels". ArXiv e-prints.
 #' @references
-#' Fernandez-Val, I. and Weidner, M. (2016). "Individual and time effects in nonlinear panel models 
+#' Fernández-Val, I. and M. Weidner (2016). "Individual and time effects in nonlinear panel models 
 #' with large N, T". Journal of Econometrics, 192(1), 291-312.
 #' @references
-#' Fernandez-Val, I. and Weidner, M. (2018). "Fixed effects estimation of large-t panel data 
+#' Fernández-Val, I. and M. Weidner (2018). "Fixed effects estimation of large-t panel data 
 #' models". Annual Review of Economics, 10, 109-138.
 #' @references
-#' Hinz, J., Stammann, A, and Wanner, J. (2019). "Persistent Zeros: The Extensive Margin of Trade".
-#' Working Paper.
+#' Hinz, J., A. Stammann, and J. Wanner (2020). "State Dependence and Unobserved Heterogeneity
+#' in the Extensive Margin of Trade". ArXiv e-prints.
 #' @references
-#' Neyman, J. and Scott, E. L. (1948). "Consistent estimates based on partially consistent 
+#' Neyman, J. and E. L. Scott (1948). "Consistent estimates based on partially consistent 
 #' observations". Econometrica, 16(1), 1-32.
 #' @seealso
 #' \code{\link{biasCorr}}, \code{\link{feglm}}
@@ -112,31 +112,34 @@ getAPEs <- function(object          = NULL,
   # Check validity of 'sampling.fe'
   sampling.fe <- match.arg(sampling.fe)
   
-  # Check if provided object is suitable for requested bias correction
-  if (panel.structure == "classic") {
-    if (object[["family"]][["family"]] != "binomial" |
-        !(object[["family"]][["link"]] %in% c("logit", "probit")) |
-        length(object[["lvls.k"]]) != 2L) {
-      stop(paste("'getAPEs' currently only supports logit and probit models."), call. = FALSE)
-    }
-  } else {
-    if (object[["family"]][["family"]] != "binomial" |
-        !(object[["family"]][["link"]] %in% c("logit", "probit")) |
-        !(length(object[["lvls.k"]]) %in% c(2L, 3L))) {
-      stop(paste("'getAPEs' currently only supports logit and probit models."), call. = FALSE)
-    }
-  }
-  
   # Extract model information
   beta <- object[["coefficients"]]
-  formula <- object[["formula"]]
-  family <- object[["family"]]
-  lvls.k <- object[["lvls.k"]]
   control <- object[["control"]]
+  data <- object[["data"]]
+  family <- object[["family"]]
+  formula <- object[["formula"]]
+  lvls.k <- object[["lvls.k"]]
   nt.full <- object[["nobs"]][["nobs.full"]]
   nt <- object[["nobs"]][["nobs"]]
   k <- length(lvls.k)
+  k.vars <- names(lvls.k)
   p <- length(beta)
+  
+  # Check if binary choice model
+  if (family[["family"]] != "binomial" || !(family[["link"]] %in% c("logit", "probit"))) {
+    stop(paste("'biasCorr' currently only supports logit and probit models."), call. = FALSE)
+  }
+  
+  # Check if provided object matches requested panel structure
+  if (panel.structure == "classic") {
+    if (length(lvls.k) != 2L) {
+      stop(paste("panel.structure == 'classic' expects a two-way fixed effects model."), call. = FALSE)
+    }
+  } else {
+    if (!(length(lvls.k) %in% c(2L, 3L))) {
+      stop(paste("panel.structure == 'network' expects a two- or three-way fixed effects model."), call. = FALSE)
+    }
+  }
   
   # Check validity of 'n.pop'
   if (!is.null(n.pop)) {
@@ -153,22 +156,16 @@ getAPEs <- function(object          = NULL,
   }
   
   # Extract model response and regressor matrix
-  y <- object[["data"]][[1L]]
-  X <- model.matrix(formula, object[["data"]], rhs = 1L)[, - 1L, drop = FALSE]
+  y <- data[[1L]]
+  X <- model.matrix(formula, data, rhs = 1L)[, - 1L, drop = FALSE]
   nms.sp <- attr(X, "dimnames")[[2L]]
   attr(X, "dimnames") <- NULL
   
   # Determine which of the regressors are binary
-  binary <- apply(X, 2L, function(x) all(x %in% c(0L, 1L)))
+  binary <- apply(X, 2L, function(x) all(x %in% c(0.0, 1.0)))
   
-  # Construct auxilliary matrix to flatten the fixed effects
-  k.vars <- names(lvls.k)
-  fe <- object[["data"]][, k.vars, with = FALSE]
-  fe[, (k.vars) := lapply(.SD, as.integer)]
-  A <- as.matrix(fe) - 1L
-  dimnames(A) <- NULL
-  rm(fe)
-  B <- apply(A, 2L, order) - 1L
+  # Generate auxiliary list of indexes for different sub panels
+  k.list <- getIndexList(k.vars, data)
   
   # Compute projection of the regressor matrix
   eta <- object[["eta"]]
@@ -226,13 +223,14 @@ getAPEs <- function(object          = NULL,
   }
   delta <- colSums(Delta) / nt.full
   Delta <- t(t(Delta) - delta)
-  rm(mu.eta, PX)
+  rm(mu, mu.eta, PX)
   
   # Compute projection and residual projection of \Psi
-  MPsi <- centerVariables(Delta1 / sqrt(w), sqrt(w), A, B, lvls.k, control[["center.tol"]]) / 
-    sqrt(w)
-  PPsi <- Delta1 / w - MPsi
+  Psi <- - Delta1 / w
   rm(Delta1)
+  MPsi <- centerVariables(Psi * sqrt(w), sqrt(w), k.list, control[["center.tol"]]) / sqrt(w)
+  PPsi <- Psi - MPsi
+  rm(Psi)
   
   # Compute analytical bias-correction of average partial effects
   if (biascorr) {
@@ -252,47 +250,49 @@ getAPEs <- function(object          = NULL,
     # Compute bias terms for requested bias correction
     if (panel.structure == "classic") {
       # Compute \hat{B}
-      b <- as.vector(groupSums(- PPsi * z + Delta2, w, A[, 1L], B[, 1L])) / 2.0
+      b <- as.vector(groupSums(PPsi * z + Delta2, w, k.list[[1L]])) / 2.0
       if (weak.exo) {
-        b <- b + as.vector(groupSumsSpectral(MPsi * w, v, w, L, A[, 1L], B[, 1L]))
+        b <- b - as.vector(groupSumsSpectral(MPsi * w, v, w, L, k.list[[1L]]))
       }
       
       # Compute \hat{D}
-      b <- b + as.vector(groupSums(- PPsi * z + Delta2, w, A[, 2L], B[, 2L])) / 2.0
+      b <- b + as.vector(groupSums(PPsi * z + Delta2, w, k.list[[2L]])) / 2.0
     } else {
       # Compute \hat{D}_{1}
-      b <- as.vector(groupSums(- PPsi * z + Delta2, w, A[, 1L], B[, 1L])) / 2.0
+      b <- as.vector(groupSums(PPsi * z + Delta2, w, k.list[[1L]])) / 2.0
       
       # Compute \hat{D}_{2}
-      b <- b + as.vector(groupSums(- PPsi * z + Delta2, w, A[, 2L], B[, 2L])) / 2.0
+      b <- b + as.vector(groupSums(PPsi * z + Delta2, w, k.list[[2L]])) / 2.0
       
       # Compute \hat{B}
       if (k == 3L) {
-        b <- b + as.vector(groupSums(- PPsi * z + Delta2, w, A[, 3L], B[, 3L])) / 2.0
+        b <- b + as.vector(groupSums(PPsi * z + Delta2, w, k.list[[3L]])) / 2.0
         if (weak.exo) {
-          b <- b + as.vector(groupSumsSpectral(MPsi * w, v, w, L, A[, 3L], B[, 3L]))
+          b <- b - as.vector(groupSumsSpectral(MPsi * w, v, w, L, k.list[[3L]]))
         }
       }
     }
     rm(Delta2)
     
     # Compute bias-corrected average partial effects
-    delta <- delta - b / nt
+    delta <- delta - b / nt.full
   }
-  rm(eta, mu, MPsi)
+  rm(eta, w, z, MPsi)
   
   # Compute covariance matrix
   J <- J %*% solve(object[["Hessian"]])
   Gamma <- tcrossprod(object[["Score"]], J) - PPsi * v
+  rm(v, PPsi)
   V <- crossprod(Gamma)
   if (adj > 0.0) {
     # Simplify covariance if sampling assumptions are imposed
     if (sampling.fe == "independence") {
-      V <- V + adj * (groupSumsVar(Delta, A[, 1L], B[, 1L]) + 
-                        groupSumsVar(Delta, A[, 2L], B[, 2L]) - crossprod(Delta))
+      V <- V + adj * (groupSumsVar(Delta, k.list[[1L]]) + 
+                        groupSumsVar(Delta, k.list[[2L]]) - 
+                        crossprod(Delta))
       if (panel.structure == "network") {
         if (k == 3L) {
-          V <- V + adj * (groupSumsVar(Delta, A[, 3L], B[, 3L]) - crossprod(Delta))
+          V <- V + adj * (groupSumsVar(Delta, k.list[[3L]]) - crossprod(Delta))
         }
       }
     } else {
@@ -302,15 +302,19 @@ getAPEs <- function(object          = NULL,
     # Add covariance in case of weak exogeneity
     if (weak.exo) {
       if (panel.structure == "classic") {
-        V <- V + adj * 2.0 * groupSumsCov(Delta, Gamma, A[, 1L], B[, 1L])
+        Cov <- groupSumsCov(Delta, Gamma, k.list[[1L]])
+        V <- V + adj * (Cov + t(Cov))
+        rm(Cov)
       } else {
         if (k == 3L) {
-          V <- V + adj * 2.0 * groupSumsCov(Delta, Gamma, A[, 3L], B[, 3L])
+          Cov <- groupSumsCov(Delta, Gamma, k.list[[3L]])
+          V <- V + adj * (Cov + t(Cov))
+          rm(Cov)
         }
       }
     }
   }
-  V <- V / nt^2
+  V <- V / nt.full^2
   
   # Add names
   names(delta) <- nms.sp

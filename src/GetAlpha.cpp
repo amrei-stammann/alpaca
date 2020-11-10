@@ -3,77 +3,90 @@
 
 
 // [[Rcpp::export(name = "getAlpha")]]
-arma::vec GetAlpha(const arma::vec &kpi,
-                   const arma::ivec &klvls_k,
-                   const arma::imat &kA,
-                   const arma::imat &kB,
-                   const double ktol) {
-  // Auxiliary variables
-  const int kn = kpi.n_rows;
-  const int kK = klvls_k.n_rows;
+arma::field<arma::vec> GetAlpha(const arma::vec& pi,
+                                const Rcpp::List& klist,
+                                const double tol) {
+  // Auxiliary variables (fixed)
+  const int n = pi.n_rows;
+  const int K = klist.size();
+  
+  // Auxiliary variables (storage)
+  double crit, denom, num, sum;
+  int iter, j, k, kk, t, J, T;
+  arma::vec y(n);
+  
+  // Generate starting guess
+  arma::field<arma::vec> Alpha(K);
+  for (k = 0 ; k < K ; ++k) {
+    Rcpp::List jlist = klist[k];
+    J = jlist.size();
+    Alpha(k) = arma::zeros(J);
+  }
   
   // Start alternating between normal equations
-  arma::vec alpha = arma::zeros(arma::accu(klvls_k));
-  double crit;
-  do {
+  arma::field<arma::vec> Alpha0(arma::size(Alpha));
+  for (iter = 0 ; iter < 10000 ; ++iter) {
     // Check user interrupt
     Rcpp::checkUserInterrupt();
     
-    // Store \alpha of the previous iteration
-    const arma::vec kalpha_old = alpha;
+    // Store \alpha_{0} of the previous iteration
+    Alpha0 = Alpha;
     
-    // Solve normal equation 'k'
-    int start = 0;
-    for (int k = 0 ; k < kK ; ++k) {
-      // Last index of \alpha corresponding to category 'k'
-      const int kend = start + klvls_k(k) - 1;
-      
+    // Solve normal equations of category k
+    for (k = 0 ; k < K ; ++k) {
       // Compute adjusted dependent variable
-      int start_k = 0;
-      arma::vec b_dots = kpi;
-      for (int kk = 0 ; kk < kK ; ++kk) {
-        const int kend_k = start_k + klvls_k(kk) - 1;
-        if (k != kk) {
-          const arma::vec kalpha_k = alpha.subvec(start_k, kend_k);
-          for (int l = 0 ; l < kn ; ++l) {
-            b_dots(l) -= kalpha_k(kA(l, kk));
+      y = pi;
+      for (kk = 0 ; kk < K ; ++kk) {
+        if (kk != k) {
+          Rcpp::List jlist = klist[kk];
+          J = jlist.size();
+          for (j = 0 ; j < J ; ++j) {
+            Rcpp::IntegerVector indexes = jlist[j];
+            T = indexes.size();
+            for (t = 0 ; t < T ; ++t) {
+              y(indexes[t]) -= Alpha(kk)(j);
+            }
           }
         }
-        start_k = kend_k + 1;
       }
       
-      // Sort category k
-      arma::vec v_k(kn);
-      arma::ivec a_k(kn);
-      for (int i = 0 ; i < kn ; ++i) {
-        const int kb = kB(i, k);
-        a_k(i) = kA(kb, k);
-        v_k(i) = b_dots(kb);
-      }
-      
-      // Group mean of sorted data
-      arma::vec alpha_k(klvls_k(k));
-      int i = 0;
-      for (int j = 0 ; j < klvls_k(k) ; ++j) {
-        double sum = 0.0;
-        int n = 0;
-        while (i < kn && a_k(i) == j) {
-          sum += v_k(i);
-          ++n;
-          ++i;
+      // Compute group mean
+      Rcpp::List jlist = klist[k];
+      J = jlist.size();
+      arma::vec alpha(J);
+      for (j = 0 ; j < J ; ++j) {
+        // Subset the j-th group of category k
+        Rcpp::IntegerVector indexes = jlist[j];
+        T = indexes.size();
+        
+        // Compute group sum
+        sum = 0.0;
+        for (t = 0 ; t < T ; ++t) {
+          sum += y(indexes[t]);
         }
-        alpha_k(j) = sum / n;
+        
+        // Store group mean
+        alpha(j) = sum / T;
       }
       
-      // Update \alpha corresponding to category 'k'
-      alpha.subvec(start, kend) = alpha_k;
-      start = kend + 1;
+      
+      // Update \alpha_{k}
+      Alpha(k) = alpha;
     }
     
-    // Compute termination criterion
-    crit = arma::norm(alpha - kalpha_old, 2) / arma::norm(kalpha_old, 2);
-  } while (crit >= ktol);
+    // Compute termination criterion and check convergence
+    num = 0.0;
+    denom = 0.0;
+    for (k = 0 ; k < K ; ++k) {
+      num += arma::accu(arma::pow(Alpha(k) - Alpha0(k), 2));
+      denom += arma::accu(arma::pow(Alpha0(k), 2));
+    }
+    crit = std::sqrt(num / denom);
+    if (crit < tol) {
+      break;
+    }
+  }
   
   // Return \alpha
-  return alpha;
+  return Alpha;
 }

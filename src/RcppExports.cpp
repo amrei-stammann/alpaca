@@ -7,101 +7,93 @@
 using namespace Rcpp;
 
 // CenterVariables
-arma::mat CenterVariables(const arma::mat& kV, const arma::vec& kw, const arma::imat& kA, const arma::imat& kB, const arma::ivec& klvls_k, const double ktol);
-RcppExport SEXP _alpaca_CenterVariables(SEXP kVSEXP, SEXP kwSEXP, SEXP kASEXP, SEXP kBSEXP, SEXP klvls_kSEXP, SEXP ktolSEXP) {
+arma::mat CenterVariables(const arma::mat& V, const arma::vec& w, const Rcpp::List& klist, const double tol);
+RcppExport SEXP _alpaca_CenterVariables(SEXP VSEXP, SEXP wSEXP, SEXP klistSEXP, SEXP tolSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const arma::mat& >::type kV(kVSEXP);
-    Rcpp::traits::input_parameter< const arma::vec& >::type kw(kwSEXP);
-    Rcpp::traits::input_parameter< const arma::imat& >::type kA(kASEXP);
-    Rcpp::traits::input_parameter< const arma::imat& >::type kB(kBSEXP);
-    Rcpp::traits::input_parameter< const arma::ivec& >::type klvls_k(klvls_kSEXP);
-    Rcpp::traits::input_parameter< const double >::type ktol(ktolSEXP);
-    rcpp_result_gen = Rcpp::wrap(CenterVariables(kV, kw, kA, kB, klvls_k, ktol));
+    Rcpp::traits::input_parameter< const arma::mat& >::type V(VSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type w(wSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::List& >::type klist(klistSEXP);
+    Rcpp::traits::input_parameter< const double >::type tol(tolSEXP);
+    rcpp_result_gen = Rcpp::wrap(CenterVariables(V, w, klist, tol));
     return rcpp_result_gen;
 END_RCPP
 }
 // GetAlpha
-arma::vec GetAlpha(const arma::vec& kpi, const arma::ivec& klvls_k, const arma::imat& kA, const arma::imat& kB, const double ktol);
-RcppExport SEXP _alpaca_GetAlpha(SEXP kpiSEXP, SEXP klvls_kSEXP, SEXP kASEXP, SEXP kBSEXP, SEXP ktolSEXP) {
+arma::field<arma::vec> GetAlpha(const arma::vec& pi, const Rcpp::List& klist, const double tol);
+RcppExport SEXP _alpaca_GetAlpha(SEXP piSEXP, SEXP klistSEXP, SEXP tolSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const arma::vec& >::type kpi(kpiSEXP);
-    Rcpp::traits::input_parameter< const arma::ivec& >::type klvls_k(klvls_kSEXP);
-    Rcpp::traits::input_parameter< const arma::imat& >::type kA(kASEXP);
-    Rcpp::traits::input_parameter< const arma::imat& >::type kB(kBSEXP);
-    Rcpp::traits::input_parameter< const double >::type ktol(ktolSEXP);
-    rcpp_result_gen = Rcpp::wrap(GetAlpha(kpi, klvls_k, kA, kB, ktol));
+    Rcpp::traits::input_parameter< const arma::vec& >::type pi(piSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::List& >::type klist(klistSEXP);
+    Rcpp::traits::input_parameter< const double >::type tol(tolSEXP);
+    rcpp_result_gen = Rcpp::wrap(GetAlpha(pi, klist, tol));
     return rcpp_result_gen;
 END_RCPP
 }
 // GroupSums
-arma::vec GroupSums(const arma::mat& kM, const arma::vec& kw, const arma::ivec& ka, const arma::ivec& kb);
-RcppExport SEXP _alpaca_GroupSums(SEXP kMSEXP, SEXP kwSEXP, SEXP kaSEXP, SEXP kbSEXP) {
+arma::vec GroupSums(const arma::mat& M, const arma::vec& w, const Rcpp::List& jlist);
+RcppExport SEXP _alpaca_GroupSums(SEXP MSEXP, SEXP wSEXP, SEXP jlistSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const arma::mat& >::type kM(kMSEXP);
-    Rcpp::traits::input_parameter< const arma::vec& >::type kw(kwSEXP);
-    Rcpp::traits::input_parameter< const arma::ivec& >::type ka(kaSEXP);
-    Rcpp::traits::input_parameter< const arma::ivec& >::type kb(kbSEXP);
-    rcpp_result_gen = Rcpp::wrap(GroupSums(kM, kw, ka, kb));
+    Rcpp::traits::input_parameter< const arma::mat& >::type M(MSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type w(wSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::List& >::type jlist(jlistSEXP);
+    rcpp_result_gen = Rcpp::wrap(GroupSums(M, w, jlist));
     return rcpp_result_gen;
 END_RCPP
 }
 // GroupSumsSpectral
-arma::vec GroupSumsSpectral(const arma::mat& kM, const arma::vec& kv, const arma::vec& kw, const int kL, const arma::ivec& ka, const arma::ivec& kb);
-RcppExport SEXP _alpaca_GroupSumsSpectral(SEXP kMSEXP, SEXP kvSEXP, SEXP kwSEXP, SEXP kLSEXP, SEXP kaSEXP, SEXP kbSEXP) {
+arma::vec GroupSumsSpectral(const arma::mat& M, const arma::vec& v, const arma::vec& w, const int L, const Rcpp::List& jlist);
+RcppExport SEXP _alpaca_GroupSumsSpectral(SEXP MSEXP, SEXP vSEXP, SEXP wSEXP, SEXP LSEXP, SEXP jlistSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const arma::mat& >::type kM(kMSEXP);
-    Rcpp::traits::input_parameter< const arma::vec& >::type kv(kvSEXP);
-    Rcpp::traits::input_parameter< const arma::vec& >::type kw(kwSEXP);
-    Rcpp::traits::input_parameter< const int >::type kL(kLSEXP);
-    Rcpp::traits::input_parameter< const arma::ivec& >::type ka(kaSEXP);
-    Rcpp::traits::input_parameter< const arma::ivec& >::type kb(kbSEXP);
-    rcpp_result_gen = Rcpp::wrap(GroupSumsSpectral(kM, kv, kw, kL, ka, kb));
+    Rcpp::traits::input_parameter< const arma::mat& >::type M(MSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type v(vSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type w(wSEXP);
+    Rcpp::traits::input_parameter< const int >::type L(LSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::List& >::type jlist(jlistSEXP);
+    rcpp_result_gen = Rcpp::wrap(GroupSumsSpectral(M, v, w, L, jlist));
     return rcpp_result_gen;
 END_RCPP
 }
 // GroupSumsVar
-arma::mat GroupSumsVar(const arma::mat& kM, const arma::ivec& ka, const arma::ivec& kb);
-RcppExport SEXP _alpaca_GroupSumsVar(SEXP kMSEXP, SEXP kaSEXP, SEXP kbSEXP) {
+arma::mat GroupSumsVar(const arma::mat& M, const Rcpp::List& jlist);
+RcppExport SEXP _alpaca_GroupSumsVar(SEXP MSEXP, SEXP jlistSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const arma::mat& >::type kM(kMSEXP);
-    Rcpp::traits::input_parameter< const arma::ivec& >::type ka(kaSEXP);
-    Rcpp::traits::input_parameter< const arma::ivec& >::type kb(kbSEXP);
-    rcpp_result_gen = Rcpp::wrap(GroupSumsVar(kM, ka, kb));
+    Rcpp::traits::input_parameter< const arma::mat& >::type M(MSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::List& >::type jlist(jlistSEXP);
+    rcpp_result_gen = Rcpp::wrap(GroupSumsVar(M, jlist));
     return rcpp_result_gen;
 END_RCPP
 }
 // GroupSumsCov
-arma::mat GroupSumsCov(const arma::mat& kM, const arma::mat& kN, const arma::ivec& ka, const arma::ivec& kb);
-RcppExport SEXP _alpaca_GroupSumsCov(SEXP kMSEXP, SEXP kNSEXP, SEXP kaSEXP, SEXP kbSEXP) {
+arma::mat GroupSumsCov(const arma::mat& M, const arma::mat& N, const Rcpp::List& jlist);
+RcppExport SEXP _alpaca_GroupSumsCov(SEXP MSEXP, SEXP NSEXP, SEXP jlistSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const arma::mat& >::type kM(kMSEXP);
-    Rcpp::traits::input_parameter< const arma::mat& >::type kN(kNSEXP);
-    Rcpp::traits::input_parameter< const arma::ivec& >::type ka(kaSEXP);
-    Rcpp::traits::input_parameter< const arma::ivec& >::type kb(kbSEXP);
-    rcpp_result_gen = Rcpp::wrap(GroupSumsCov(kM, kN, ka, kb));
+    Rcpp::traits::input_parameter< const arma::mat& >::type M(MSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type N(NSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::List& >::type jlist(jlistSEXP);
+    rcpp_result_gen = Rcpp::wrap(GroupSumsCov(M, N, jlist));
     return rcpp_result_gen;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_alpaca_CenterVariables", (DL_FUNC) &_alpaca_CenterVariables, 6},
-    {"_alpaca_GetAlpha", (DL_FUNC) &_alpaca_GetAlpha, 5},
-    {"_alpaca_GroupSums", (DL_FUNC) &_alpaca_GroupSums, 4},
-    {"_alpaca_GroupSumsSpectral", (DL_FUNC) &_alpaca_GroupSumsSpectral, 6},
-    {"_alpaca_GroupSumsVar", (DL_FUNC) &_alpaca_GroupSumsVar, 3},
-    {"_alpaca_GroupSumsCov", (DL_FUNC) &_alpaca_GroupSumsCov, 4},
+    {"_alpaca_CenterVariables", (DL_FUNC) &_alpaca_CenterVariables, 4},
+    {"_alpaca_GetAlpha", (DL_FUNC) &_alpaca_GetAlpha, 3},
+    {"_alpaca_GroupSums", (DL_FUNC) &_alpaca_GroupSums, 3},
+    {"_alpaca_GroupSumsSpectral", (DL_FUNC) &_alpaca_GroupSumsSpectral, 5},
+    {"_alpaca_GroupSumsVar", (DL_FUNC) &_alpaca_GroupSumsVar, 2},
+    {"_alpaca_GroupSumsCov", (DL_FUNC) &_alpaca_GroupSumsCov, 3},
     {NULL, NULL, 0}
 };
 

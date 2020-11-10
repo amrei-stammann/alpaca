@@ -3,7 +3,7 @@
 #' @description
 #' \code{\link{feglm}} can be used to fit generalized linear models with many high-dimensional fixed
 #' effects. The estimation procedure is based on unconditional maximum likelihood and can be
-#' interpreted as a \dQuote{pseudo demeaning} approach that combines the work of Gaure (2013) and
+#' interpreted as a \dQuote{weighted demeaning} approach that combines the work of Gaure (2013) and
 #' Stammann et. al. (2016). For technical details see Stammann (2018). The routine is well suited
 #' for large data sets that would be otherwise infeasible to use due to memory limitations.
 #' 
@@ -19,7 +19,7 @@
 #' data an object of class \code{"data.frame"} containing the variables in the model.
 #' @param
 #' family a description of the error distribution and link function to be used in the model. 
-#' Similiar to \code{\link[stats]{glm.fit}} this has to be the result of a call to a family 
+#' Similar to \code{\link[stats]{glm.fit}} this has to be the result of a call to a family 
 #' function. Default is \code{binomial()}. See \code{\link[stats]{family}} for details of family 
 #' functions.
 #' @param
@@ -40,7 +40,7 @@
 #' Gaure, S. (2013). "OLS with Multiple High Dimensional Category Variables". Computational
 #' Statistics and Data Analysis, 66.
 #' @references 
-#' Stammann, A., Heiss, F., and McFadden, D. (2016). "Estimating Fixed Effects Logit Models with 
+#' Stammann, A., F. Heiss, and D. McFadden (2016). "Estimating Fixed Effects Logit Models with 
 #' Large Panel Data". Working paper.
 #' @references 
 #' Stammann, A. (2018). "Fast and Feasible Estimation of Generalized Linear Models with
@@ -114,7 +114,7 @@ feglm <- function(formula       = NULL,
   nobs.na <- nobs.full - nrow(data)
   nobs.full <- nrow(data)
   
-  # Ensure that model response is in line with the choosen model
+  # Ensure that model response is in line with the chosen model
   if (family[["family"]] == "binomial") {
     # Check if 'y' is numeric
     if (data[, is.numeric(get(lhs))]) {
@@ -132,7 +132,7 @@ feglm <- function(formula       = NULL,
       }
       
       # Ensure 'y' is 0-1 encoded
-      data[, (1L) := as.integer(get(lhs)) - 1L]
+      data[, (1L) := as.numeric(get(lhs)) - 1.0]
     }
   } else if (family[["family"]] %in% c("Gamma", "inverse.gaussian")) {
     # Check if 'y' is strictly positive
@@ -151,10 +151,12 @@ feglm <- function(formula       = NULL,
   k <- length(k.vars)
   setkeyv(data, k.vars)
   
-  # Drop observations that do not contribute to the loglikelihood
+  # Generate temporary variable for operations on the data.table
+  tmp.var <- tempVar(data)
+  
+  # Drop observations that do not contribute to the loglikelihood if requested 
   if (family[["family"]] %in% c("binomial", "poisson")) {
     if (control[["drop.pc"]]) {
-      tmp.var <- tempVar(data)
       for (i in k.vars) {
         data[, (tmp.var) := mean(get(lhs)), by = eval(i)]
         if (family[["family"]] == "binomial") {
@@ -175,10 +177,11 @@ feglm <- function(formula       = NULL,
   }
   
   # Determine number of dropped observations
+  nt <- nrow(data)
   nobs <- c(nobs.full = nobs.full,
             nobs.na   = nobs.na,
-            nobs.pc   = nobs.full - nrow(data),
-            nobs      = nrow(data))
+            nobs.pc   = nobs.full - nt,
+            nobs      = nt)
   
   # Extract model response and regressor matrix
   y <- data[[1L]]
@@ -212,7 +215,7 @@ feglm <- function(formula       = NULL,
       eta <- as.vector(X %*% beta)
     } else {
       # Validity of input argument (eta.start)
-      if (length(eta.start) != nobs[[4L]]) {
+      if (length(eta.start) != nt) {
         stop("Length of 'eta.start' has to be equal to the number of observations.", call. = FALSE)
       }
       
@@ -223,8 +226,7 @@ feglm <- function(formula       = NULL,
   } else {
     # Compute starting guesses if not user specified
     beta <- numeric(p)
-    tmp.var <- tempVar(data)
-    eta <- numeric(nobs[[4L]])
+    eta <- numeric(nt)
     for (i in k.vars) {
       data[, (tmp.var) := mean(get(lhs)), by = eval(i)]
       if (family[["family"]] == "binomial") {
@@ -239,19 +241,16 @@ feglm <- function(formula       = NULL,
   }
   rm(beta.start, eta.start)
   
-  # Ensure factors are consecutive integers and generate auxilliary matrices to center variables
-  fe <- data[, k.vars, with = FALSE]
-  nms.fe <- lapply(fe, levels)
-  fe[, (k.vars) := lapply(.SD, as.integer)]
-  lvls.k <- sapply(fe, max)
-  A <- as.matrix(fe) - 1L
-  rm(fe)
-  dimnames(A) <- NULL
-  B <- apply(A, 2L, order) - 1L
+  # Get names and number of levels in each fixed effects category
+  nms.fe <- lapply(data[, k.vars, with = FALSE], levels)
+  lvls.k <- sapply(nms.fe, length)
+  
+  # Generate auxiliary list of indexes for different sub panels
+  k.list <- getIndexList(k.vars, data)
   
   # Fit generalized linear model
-  fit <- feglmFit(beta, eta, y, X, A, B, lvls.k, family, control)
-  rm(y, X, eta, A, B)
+  fit <- feglmFit(beta, eta, y, X, k.list, family, control)
+  rm(y, X, eta)
   
   # Add names to \beta, Scores, and Hessian
   names(fit[["coefficients"]]) <- nms.sp
@@ -265,308 +264,6 @@ feglm <- function(formula       = NULL,
                         formula = formula,
                         data    = data,
                         family  = family,
-                        control = control)), class = "feglm")
-}
-
-
-#' @title
-#' Set \code{feglm} Control Parameters
-#' @description
-#' Set and change parameters used for fitting \code{\link{feglm}}.
-#' 
-#' \strong{Note:} \code{\link{feglm.control}} is deprecated and will be removed soon.
-#' @param
-#' dev.tol tolerance level for the first stopping condition of the maximization routine. The 
-#' stopping condition is based on the relative change of the deviance in iteration \eqn{r}
-#' and can be expressed as follows: \eqn{(dev_{r - 1} - dev_{r}) / (0.1 + dev_{r}) < 
-#' tol}{\Delta dev / (0.1 + dev) < tol}. Default is \code{1.0e-08}.
-#' @param
-#' center.tol tolerance level for the stopping condition of the centering algorithm.
-#' The stopping condition is based on the relative change of euclidean norm in iteration \eqn{i} and
-#' can be expressed as follows: \eqn{||\mathbf{v}_{i} - \mathbf{v}_{i - 1}||_{2} < 
-#' tol ||\mathbf{v}_{i - 1}||}{||\Delta v|| / ||v_old|| < tol}. Default is
-#' \code{1.0e-05}.
-#' @param
-#' rho.tol tolerance level for the stephalving in the maximization routine. Stephalving only takes
-#' place if the deviance in iteration \eqn{r} is larger than the one of the previous iteration. If 
-#' this is the case, 
-#' \eqn{||\boldsymbol{\beta}_{r} - \boldsymbol{\beta}_{r - 1}||_{2}}{||\Delta \beta||} is 
-#' halfed until the deviance is less or numerically equal compared to the deviance of the previous
-#' iteration. Stephalving fails if the the following condition holds: \eqn{\rho < tol}{\rho < tol}, 
-#' where \eqn{\rho}{\rho} is the stepcorrection factor. If stephalving fails the maximization
-#' routine is canceled. Default is \code{1.0e-04}.
-#' @param
-#' conv.tol tolerance level that accounts for rounding errors inside the stephalving routine when
-#' comparing the deviance with the one of the previous iteration. Default is \code{1.0e-06}.
-#' @param
-#' iter.max unsigned integer indicating the maximum number of iterations in the maximization
-#' routine. Default is \code{100L}.
-#' @param
-#' limit unsigned integer indicating the maximum number of iterations of 
-#' \code{\link[MASS]{theta.ml}}. Default is \code{10L}.
-#' @param
-#' trace logical indicating if output should be produced in each iteration. Default is \code{FALSE}.
-#' @param
-#' drop.pc logical indicating to drop observations that are perfectly classified 
-#' (perfectly seperated) and hence do not contribute to the log-likelihood. This option is useful to
-#' reduce the computational costs of the maximization problem, since it reduces the number of
-#' observations and does not affect the estimates. Default is \code{TRUE}.
-#' @param
-#' pseudo.tol deprecated; use \code{center.tol} instead.
-#' @param
-#' step.tol depreacted; termination conditions is now similar to \code{\link[stats]{glm}}.
-#' @param
-#' ... arguments passed to the deprecated function \code{\link{feglm.control}}.
-#' @return
-#' The function \code{\link{feglmControl}} returns a named list of control 
-#' parameters.
-#' @seealso
-#' \code{\link{feglm}}
-#' @export
-feglmControl <- function(dev.tol    = 1.0e-08,
-                         center.tol = 1.0e-05,
-                         rho.tol    = 1.0e-04,
-                         conv.tol   = 1.0e-06,
-                         iter.max   = 100L,
-                         limit      = 10L,
-                         trace      = FALSE,
-                         drop.pc    = TRUE,
-                         pseudo.tol = NULL,
-                         step.tol   = NULL) {
-  # 'pseudo.tol' is deprecated
-  if (!is.null(pseudo.tol)) {
-    warning("'pseudo.tol' is deprecated; please use 'center.tol' instead.", call. = FALSE)
-    center.tol <- pseudo.tol
-  }
-  
-  # 'step.tol' is deprecated
-  if (!is.null(step.tol)) {
-    warning("'step.tol' is deprecated;", call. = FALSE)
-  }
-  
-  # Check validity of tolerance parameters
-  if (dev.tol <= 0.0 || center.tol <= 0.0 || rho.tol <= 0.0 || conv.tol <= 0.0) {
-    stop("All tolerance paramerters should be greater than zero.", call. = FALSE)
-  }
-  
-  # Check validity of 'iter.max'
-  iter.max <- as.integer(iter.max)
-  if (iter.max < 1L) {
-    stop("Maximum number of iterations should be at least one.", call. = FALSE)
-  }
-  
-  # Check validity of 'limit'
-  limit <- as.integer(limit)
-  if (limit < 1L) {
-    stop("Maximum number of iterations should be at least one.", call. = FALSE)
-  }
-  
-  # Return list with control parameters
-  list(dev.tol    = dev.tol,
-       center.tol = center.tol,
-       rho.tol    = rho.tol,
-       conv.tol   = conv.tol,
-       iter.max   = iter.max,
-       limit      = limit,
-       trace      = as.logical(trace),
-       drop.pc    = as.logical(drop.pc))
-}
-
-
-### Internal function (not exported)
-
-
-# Fitting algorithm (similar to glm.fit)
-feglmFit <- function(beta, eta, y, X, A, B, lvls.k, family, control) {
-  # Compute initial quantities for the maximization routine
-  mu <- family[["linkinv"]](eta)
-  wt <- rep(1.0, length(y))
-  dev <- sum(family[["dev.resids"]](y, mu, wt))
-  null.dev <- sum(family[["dev.resids"]](y, mean(y), wt))
-  z <- numeric(length(y))
-  
-  # Start maximization of the log-likelihood
-  conv <- FALSE
-  for (iter in seq.int(control[["iter.max"]])) {
-    # Compute weights and dependent variable
-    mu.eta <- family[["mu.eta"]](eta)
-    w.tilde <- sqrt(mu.eta^2 / family[["variance"]](mu))
-    nu <- (y - mu) / mu.eta
-    
-    # Centering variables
-    z <- as.vector(centerVariables(as.matrix((z + nu) * w.tilde), w.tilde,
-                                   A, B, lvls.k, control[["center.tol"]]))
-    X <- centerVariables(X * w.tilde, w.tilde, A, B, lvls.k, control[["center.tol"]])
-    
-    # Compute update step and update \eta
-    beta.upd <- qr.solve(X, z, min(1.0e-07, control[["dev.tol"]] / 1000.0))
-    eta.upd <- nu - (z - as.vector(X %*% beta.upd)) / w.tilde
-    
-    # Stephalving based on residual deviance
-    dev.old <- dev
-    rho <- 1.0
-    repeat {
-      # Compute residual deviance
-      mu <- family[["linkinv"]](eta + rho * eta.upd)
-      dev <- sum(family[["dev.resids"]](y, mu, wt))
-      
-      # Check if deviance is not increasing
-      if (is.finite(dev) && dev <= dev.old + control[["conv.tol"]] * dev) {
-        # Update \eta, \beta, and leave stephalving
-        eta <- eta + rho * eta.upd
-        beta <- beta + rho * beta.upd
-        break
-      }
-      
-      # Update \rho
-      rho <- rho / 2.0
-      
-      # If \rho is to small throw error
-      if (rho < control[["rho.tol"]]) {
-        stop("Failure in stephalving.", call. = FALSE)
-      }
-    }
-    
-    # Progress information
-    if (control[["trace"]]) {
-      cat("Deviance=", format(dev, digits = 5L, nsmall = 2L), "- Iteration=", iter, "\n")
-      cat("Estimate=", format(beta, digits = 3L, nsmall = 2L), "\n")
-    }
-    
-    # Check termination condition
-    if ((dev.old - dev) / (0.1 + dev) < control[["dev.tol"]]) {
-      if (control[["trace"]]) {
-        cat("Convergence\n")
-      }
-      conv <- TRUE
-      break
-    }
-    
-    # Update starting guesses for acceleration
-    z <- z / w.tilde - nu
-    X <- X / w.tilde
-  }
-  
-  # Compute Score and Hessian
-  G <- X * z
-  H <- crossprod(X)
-  
-  # Return result list
-  list(coefficients  = beta,
-       eta           = eta,
-       Score         = G,
-       Hessian       = H,
-       deviance      = dev,
-       null.deviance = null.dev,
-       conv          = conv,
-       iter          = iter)
-}
-
-
-# Efficient offset algorithm to update the linear predictor
-feglmOffset <- function(object, offset) {
-  # Check validity of 'object'
-  if (!inherits(object, "feglm")) {
-    stop("'feglmOffset' called on a non-'feglm' object.")
-  }
-  
-  # Extract required quantities from result list
-  formula <- object[["formula"]]
-  family <- object[["family"]]
-  control <- object[["control"]]
-  lvls.k <- object[["lvls.k"]]
-  nobs <- object[["nobs"]][["nobs"]]
-  lhs <- names(object[["data"]])[[1L]]
-  k.vars <- names(lvls.k)
-  k <- length(lvls.k)
-  
-  # Compute starting guess for \eta
-  tmp.var <- tempVar(object[["data"]])
-  eta <- numeric(nobs)
-  for (i in k.vars) {
-    object[["data"]][, (tmp.var) := mean(get(lhs)), by = eval(i)]
-    if (family[["family"]] == "binomial") {
-      eta <- eta + family[["linkfun"]]((object[["data"]][[tmp.var]] + 0.5) / 2.0) / k
-    } else if (family[["family"]] %in% c("Gamma", "inverse.gaussian")) {
-      eta <- eta + family[["linkfun"]](object[["data"]][[tmp.var]]) / k
-    } else {
-      eta <- eta + family[["linkfun"]](object[["data"]][[tmp.var]] + 0.1) / k
-    }
-    object[["data"]][, (tmp.var) := NULL]
-  }
-  
-  # Construct auxiliary matrix to flatten the fixed effects
-  fe <- object[["data"]][, k.vars, with = FALSE]
-  fe[, (k.vars) := lapply(.SD, as.integer)]
-  A <- as.matrix(fe) - 1L
-  dimnames(A) <- NULL
-  rm(fe)
-  B <- apply(A, 2L, order) - 1L
-
-  # Extract dependent variable and compute initial quantities for the maximization routine
-  y <- object[["data"]][[1L]]
-  mu <- family[["linkinv"]](eta)
-  wt <- rep(1.0, nobs)
-  dev <- sum(family[["dev.resids"]](y, mu, wt))
-  z <- numeric(length(y))
-  
-  # Start maximization of the log-likelihood
-  for (iter in seq.int(control[["iter.max"]])) {
-    # Compute weights and dependent variable
-    mu.eta <- family[["mu.eta"]](eta)
-    w.tilde <- sqrt(mu.eta^2 / family[["variance"]](mu))
-    q <- eta - offset + (y - mu) / mu.eta
-    
-    # Centering dependent variable and compute \eta update
-    z <- as.vector(centerVariables(as.matrix((z + q) * w.tilde), w.tilde,
-                                   A, B, lvls.k, control[["center.tol"]]))
-    eta.upd <- q - z / w.tilde + offset - eta
-    
-    # Stephalving based on residual deviance as common in glm's
-    dev.old <- dev
-    rho <- 1.0
-    repeat {
-      # Compute residual deviance
-      mu <- family[["linkinv"]](eta + rho * eta.upd)
-      dev <- sum(family[["dev.resids"]](y, mu, wt))
-      
-      # Check if deviance is not increasing
-      if (is.finite(dev) && dev <= dev.old + control[["conv.tol"]] * dev) {
-        # Update \eta and leave stephalving
-        eta <- eta + rho * eta.upd
-        break
-      }
-      
-      # Update \rho
-      rho <- rho / 2.0
-      
-      # If \rho is to small throw error
-      if (rho < control[["rho.tol"]]) {
-        # TODO: Add info that this might be due perfect colliniearity with fixed effects
-        stop("Failure in stephalving.", call. = FALSE)
-      }
-    }
-    
-    # Check termination condition
-    if ((dev.old - dev) / (0.1 + dev) < control[["dev.tol"]]) {
-      break
-    }
-    
-    # Update starting guess for acceleration
-    z <- z / w.tilde - q
-  }
-  
-  # Return \eta
-  eta
-}
-
-
-### Deprecated functions
-
-#' @rdname feglmControl
-#' @aliases feglmControl
-#' @export
-feglm.control <- function(...) {
-  .Deprecated("feglmControl")
-  do.call(feglmControl, list(...))
+                        control = control)),
+            class = "feglm")
 }

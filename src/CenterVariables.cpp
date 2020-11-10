@@ -1,70 +1,75 @@
 #define ARMA_NO_DEBUG
 #include <RcppArmadillo.h>
 
-
 // Method of alternating projections (Halperin)
 // [[Rcpp::export(name = "centerVariables")]]
-arma::mat CenterVariables(const arma::mat &kV,
-                          const arma::vec &kw,
-                          const arma::imat &kA,
-                          const arma::imat &kB,
-                          const arma::ivec &klvls_k,
-                          const double ktol) {
-  // Auxiliary variables
-  const int kn = kV.n_rows;
-  const int kp = kV.n_cols;
-  const int kk = kA.n_cols;
+arma::mat CenterVariables(const arma::mat& V,
+                          const arma::vec& w,
+                          const Rcpp::List& klist,
+                          const double tol) {
+  // Auxiliary variables (fixed)
+  const int n = V.n_rows;
+  const int K = klist.size();
+  const int P = V.n_cols;
+  
+  // Auxiliary variables (storage)
+  double adjtol, c, crit, delta, delta0, denom, meanj, num, wt;
+  int index, iter, j, k, p, t, J, T;
+  arma::mat M = V;
+  arma::vec x0(n);
   
   // Halperin projections
-  arma::mat M(kn, kp);
-  for (int p = 0 ; p < kp ; ++p) {
+  for (p = 0 ; p < P ; ++p) {
     // Center each variable
-    arma::vec Mv = kV.col(p);
-    double crit;
-    do {
+    delta0 = 2.0 * arma::norm(M.col(p), 2);
+    for (iter = 0 ; iter < 10000 ; ++iter) {
       // Check user interrupt
       Rcpp::checkUserInterrupt();
       
+      // Store vector from the last iteration
+      x0 = M.col(p);
+      
       // Alternate between categories
-      const arma::vec kMv_old = Mv;
-      for (int k = 0 ; k < kk ; ++k) {
-        // Sort by category k
-        arma::vec Mv_k(kn);
-        arma::vec w_k(kn);
-        arma::ivec a_k(kn);
-        for (int i = 0 ; i < kn ; ++i) {
-          const int kb = kB(i, k);
-          a_k(i) = kA(kb, k);
-          Mv_k(i) = Mv(kb);
-          w_k(i) = kw(kb);
-        }
-        
-        // Centering sorted data
-        arma::vec fac_k(klvls_k(k));
-        int i = 0;
-        for (int j = 0 ; j < klvls_k(k) ; ++j) {
-          double num = 0.0;
-          double denom = 0.0;
-          while (i < kn && a_k(i) == j) {
-            num += w_k(i) * Mv_k(i);
-            denom += std::pow(w_k(i), 2);
-            ++i;
+      for (k = 0 ; k < K ; ++k) {
+        // Compute all weighted group means of category 'k' and subtract them
+        Rcpp::List jlist = klist[k];
+        J = jlist.size();
+        for (j = 0 ; j < J ; ++j) {
+          // Subset j-th group of category 'k'
+          Rcpp::IntegerVector indexes = jlist[j];
+          T = indexes.size();
+          
+          // Compute numerator and denominator of the weighted group mean
+          num = 0.0;
+          denom = 0.0;
+          for (t = 0 ; t < T ; ++t) {
+            index = indexes[t];
+            wt = w(index);
+            num += wt * M(index, p);
+            denom += std::pow(wt, 2);
           }
-          fac_k(j) = num / denom;
-        }
-        
-        // Sort back and substract
-        for (int i = 0 ; i < kn ; ++i) {
-          Mv(i) -= kw(i) * fac_k(kA(i, k));
+          
+          // Subtract weighted group mean
+          meanj = num / denom;
+          for (t = 0 ; t < T ; ++t) {
+            index = indexes[t];
+            M(index, p) -= w(index) * meanj;
+          }
         }
       }
       
-      // Compute termination criterion
-      crit = arma::norm(Mv - kMv_old, 2) / arma::norm(kMv_old, 2);
-    } while (crit >= ktol);
-    
-    // Add column to M
-    M.col(p) = Mv;
+      // Compute termination criteria and check convergence
+      delta = arma::norm(M.col(p) - x0, 2);
+      c = delta / delta0;
+      adjtol = std::sqrt(1.0 + arma::accu(arma::pow(x0, 2))) * tol;
+      crit = delta / (1.0 - c);
+      if (crit <= adjtol) {
+        break;
+      }
+      
+      // Store \delta from the previous iteration
+      delta0 = delta;
+    }
   }
   
   // Return matrix with centered variables

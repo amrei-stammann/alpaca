@@ -19,7 +19,7 @@ getAPEs(
 
 \item{n.pop}{unsigned integer indicating a finite population correction for the estimation of the 
 covariance matrix of the average partial effects proposed by 
-Cruz-Gonzalez, Fernandez-Val, and Weidner (2017). The correction factor is computed as follows: 
+Cruz-Gonzalez, Fernández-Val, and Weidner (2017). The correction factor is computed as follows: 
 \eqn{(n^{\ast} - n) / (n^{\ast} - 1)}{(n.pop - n) / (n.pop - 1)}, 
 where \eqn{n^{\ast}}{n.pop} and \eqn{n}{n} are the size of the entire 
 population and the full sample size. Default is \code{NULL}, which refers to a factor of one and 
@@ -78,22 +78,22 @@ summary(mod.ape.bc)
 }
 }
 \references{
-Cruz-Gonzalez, M., Fernandez-Val, I., and Weidner, M. (2017). "Bias corrections for probit and 
+Cruz-Gonzalez, M., I. Fernández-Val, and M. Weidner (2017). "Bias corrections for probit and 
 logit models with two-way fixed effects". The Stata Journal, 17(3), 517-545.
 
-Czarnowske, D. and Stammann, A. (2019). "Binary Choice Models with High-Dimensional Individual 
-and Time Fixed Effects". ArXiv e-prints.
+Czarnowske, D. and A. Stammann (2020). "Fixed Effects Binary Choice Models: Estimation and Inference
+with Long Panels". ArXiv e-prints.
 
-Fernandez-Val, I. and Weidner, M. (2016). "Individual and time effects in nonlinear panel models 
+Fernández-Val, I. and M. Weidner (2016). "Individual and time effects in nonlinear panel models 
 with large N, T". Journal of Econometrics, 192(1), 291-312.
 
-Fernandez-Val, I. and Weidner, M. (2018). "Fixed effects estimation of large-t panel data 
+Fernández-Val, I. and M. Weidner (2018). "Fixed effects estimation of large-t panel data 
 models". Annual Review of Economics, 10, 109-138.
 
-Hinz, J., Stammann, A, and Wanner, J. (2019). "Persistent Zeros: The Extensive Margin of Trade".
-Working Paper.
+Hinz, J., A. Stammann, and J. Wanner (2020). "State Dependence and Unobserved Heterogeneity
+in the Extensive Margin of Trade". ArXiv e-prints.
 
-Neyman, J. and Scott, E. L. (1948). "Consistent estimates based on partially consistent 
+Neyman, J. and E. L. Scott (1948). "Consistent estimates based on partially consistent 
 observations". Econometrica, 16(1), 1-32.
 }
 \seealso{

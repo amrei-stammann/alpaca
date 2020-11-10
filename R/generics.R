@@ -231,8 +231,11 @@ print.summary.feglm <- function(x, digits = max(3L, getOption("digits") - 3L), .
       cat("(", x[["nobs"]][["nobs.pc"]], "observation(s) deleted due to perfect classification )\n")
     }
   }
-  cat("\nNumber of Fisher Scoring Iterations:", x[["iter"]], "\n")
-  if (!is.null(x[["theta"]])) {
+  if (is.null(x[["theta"]])) {
+    cat("\nNumber of Fisher Scoring Iterations:", x[["iter"]], "\n")
+  } else {
+    cat("\nNumber of Fisher Scoring Iterations:", x[["iter"]])
+    cat("\nNumber of Outer Iterations:", x[["iter.outer"]])
     cat("\ntheta= ",
         format(x[["theta"]], digits = digits, nsmall = 2L),
         ", std. error= ",
@@ -335,6 +338,7 @@ summary.feglm <- function(object,
               family        = object[["family"]])
   if (inherits(object, "feglm.nb")) {
     res[["theta"]] <- object[["theta"]]
+    res[["iter.outer"]] <- object[["iter.outer"]]
   }
   
   # Return list
@@ -414,8 +418,11 @@ vcov.feglm <- function(object,
     if (inherits(R, "try-error")) {
       V <- matrix(Inf, p, p)
     } else {
-      # Extract the score and compute the inverse of the empirical Hessian
+      # Extract data and the score
+      data <- object[["data"]]
       G <- object[["Score"]]
+      
+      # Compute the inverse of the empirical Hessian
       A <- chol2inv(R)
       
       # Compute inner part of the sandwich formula
@@ -431,7 +438,7 @@ vcov.feglm <- function(object,
         
         # Extract cluster variables
         cluster <- Formula(cluster)
-        D <- try(object[["data"]][, all.vars(cluster), with = FALSE], silent = TRUE)
+        D <- try(data[, all.vars(cluster), with = FALSE], silent = TRUE)
         if (inherits(D, "try-error")) {
           stop(paste("At least one cluster variable was not found.",
                      "Ensure to pass variables that are not part of the model itself, but are", 

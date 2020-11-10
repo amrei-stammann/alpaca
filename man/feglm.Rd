@@ -23,7 +23,7 @@ part of the formula: \code{y ~ x | k | add}.}
 \item{data}{an object of class \code{"data.frame"} containing the variables in the model.}
 
 \item{family}{a description of the error distribution and link function to be used in the model. 
-Similiar to \code{\link[stats]{glm.fit}} this has to be the result of a call to a family 
+Similar to \code{\link[stats]{glm.fit}} this has to be the result of a call to a family 
 function. Default is \code{binomial()}. See \code{\link[stats]{family}} for details of family 
 functions.}
 
@@ -41,7 +41,7 @@ The function \code{\link{feglm}} returns a named list of class \code{"feglm"}.
 \description{
 \code{\link{feglm}} can be used to fit generalized linear models with many high-dimensional fixed
 effects. The estimation procedure is based on unconditional maximum likelihood and can be
-interpreted as a \dQuote{pseudo demeaning} approach that combines the work of Gaure (2013) and
+interpreted as a \dQuote{weighted demeaning} approach that combines the work of Gaure (2013) and
 Stammann et. al. (2016). For technical details see Stammann (2018). The routine is well suited
 for large data sets that would be otherwise infeasible to use due to memory limitations.
 
@@ -68,7 +68,7 @@ summary(mod)
 Gaure, S. (2013). "OLS with Multiple High Dimensional Category Variables". Computational
 Statistics and Data Analysis, 66.
 
-Stammann, A., Heiss, F., and McFadden, D. (2016). "Estimating Fixed Effects Logit Models with 
+Stammann, A., F. Heiss, and D. McFadden (2016). "Estimating Fixed Effects Logit Models with 
 Large Panel Data". Working paper.
 
 Stammann, A. (2018). "Fast and Feasible Estimation of Generalized Linear Models with

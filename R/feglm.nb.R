@@ -76,7 +76,7 @@ feglm.nb <- function(formula       = NULL,
   nobs.na <- nobs.full - nrow(data)
   nobs.full <- nrow(data)
   
-  # Ensure that model response is in line with the choosen model
+  # Ensure that model response is in line with the chosen model
   if (data[, any(get(lhs) < 0.0)]) {
     stop("Model response has to be positive.", call. = FALSE)
   }
@@ -86,9 +86,11 @@ feglm.nb <- function(formula       = NULL,
   k <- length(k.vars)
   setkeyv(data, k.vars)
   
+  # Generate temporary variable
+  tmp.var <- tempVar(data)
+  
   # Drop observations that do not contribute to the loglikelihood
   if (control[["drop.pc"]]) {
-    tmp.var <- tempVar(data)
     for (i in k.vars) {
       data[, (tmp.var) := mean(get(lhs)), by = eval(i)]
       data <- data[get(tmp.var) > 0.0]
@@ -165,7 +167,6 @@ feglm.nb <- function(formula       = NULL,
   } else {
     # Compute starting guesses if not user specified
     beta <- numeric(p)
-    tmp.var <- tempVar(data)
     eta <- numeric(nobs[[4L]])
     for (i in k.vars) {
       data[, (tmp.var) := mean(get(lhs)), by = eval(i)]
@@ -175,57 +176,64 @@ feglm.nb <- function(formula       = NULL,
   }
   rm(beta.start, eta.start, init.theta)
   
-  # Ensure factors are consecutive integers and generate auxilliary matrices to center variables
-  fe <- data[, k.vars, with = FALSE]
-  nms.fe <- lapply(fe, levels)
-  fe[, (k.vars) := lapply(.SD, as.integer)]
-  lvls.k <- sapply(fe, max)
-  A <- as.matrix(fe) - 1L
-  rm(fe)
-  dimnames(A) <- NULL
-  B <- apply(A, 2L, order) - 1L
+  # Get names and number of levels in each fixed effects category
+  nms.fe <- lapply(data[, k.vars, with = FALSE], levels)
+  lvls.k <- sapply(nms.fe, length)
+  
+  # Generate auxiliary list of indexes for different sub panels
+  k.list <- getIndexList(k.vars, data)
+  
+  # Extract control arguments
+  tol <- control[["dev.tol"]]
+  limit <- control[["limit"]]
+  iter.max <- control[["iter.max"]]
+  trace <- control[["trace"]]
   
   # Initial negative binomial fit
-  fit <- feglmFit(beta, eta, y, X, A, B, lvls.k, family, control)
+  fit <- feglmFit(beta, eta, y, X, k.list, family, control)
   beta <- fit[["coefficients"]]
   eta <- fit[["eta"]]
   dev <- fit[["deviance"]]
-  theta <- suppressWarnings(theta.ml(y, family[["linkinv"]](eta), n = nobs[[4L]],
-                                     limit = control[["limit"]], trace = control[["trace"]]))
+  n <- nobs[[4L]]
+  theta <- suppressWarnings(theta.ml(y, family[["linkinv"]](eta), n = n,
+                                     limit = limit, trace = trace))
   
   
   # Alternate between fitting a glm and \theta
   conv <- FALSE
-  for (iter in seq.int(control[["iter.max"]])) {
+  for (iter in seq.int(iter.max)) {
     # Fit negative binomial model
     dev.old <- dev
     family <- negative.binomial(theta, link)
-    fit <- feglmFit(beta, eta, y, X, A, B, lvls.k, family, control)
+    fit <- feglmFit(beta, eta, y, X, k.list, family, control)
     beta <- fit[["coefficients"]]
     eta <- fit[["eta"]]
     dev <- fit[["deviance"]]
-    theta <- suppressWarnings(theta.ml(y, family[["linkinv"]](eta), n = nobs[[4L]],
-                                       limit = control[["limit"]], trace = control[["trace"]]))
+    theta0 <- theta
+    theta <- suppressWarnings(theta.ml(y, family[["linkinv"]](eta), n = n,
+                                       limit = limit, trace = trace))
+    
     
     # Progress information
-    if (control[["trace"]]) {
-      cat("Deviance=", round(dev, 2L), "- Outer Iteration=", iter, "\n")
+    if (trace) {
+      cat("Outer Iteration=", iter, "\n")
+      cat("Deviance=", format(dev, digits = 5L, nsmall = 2L), "\n")
+      cat("theta=", format(theta, digits = 5L, nsmall = 2L), "\n")
+      cat("Estimates=", format(beta, digits = 3L, nsmall = 2L), "\n")
     }
     
     # Check termination condition
-    if ((dev.old - dev) / (0.1 + dev) < control[["dev.tol"]]) {
-      if (control[["trace"]]) {
+    con1 <- abs(dev - dev.old) / (0.1 + abs(dev))
+    con2 <- abs(theta - theta0)
+    if (con1 + con2 <= tol) {
+      if (trace) {
         cat("Convergence\n")
       }
       conv <- TRUE
       break
     }
   }
-  rm(y, X, eta, A, B)
-  
-  # Update 'iter' and 'conv' in result list
-  fit[["iter"]] <- iter
-  fit[["conv"]] <- conv
+  rm(y, X, eta)
   
   # Add names to \beta, Scores, and Hessian
   names(fit[["coefficients"]]) <- nms.sp
@@ -233,12 +241,15 @@ feglm.nb <- function(formula       = NULL,
   dimnames(fit[["Hessian"]]) <- list(nms.sp, nms.sp)
   
   # Return result list
-  structure(c(fit, list(theta   = theta,
-                        nobs    = nobs,
-                        lvls.k  = lvls.k,
-                        nms.fe  = nms.fe,
-                        formula = formula,
-                        data    = data,
-                        family  = family,
-                        control = control)), class = c("feglm", "feglm.nb"))
+  structure(c(fit, list(theta      = theta,
+                        iter.outer = iter,
+                        conv.outer = conv,
+                        nobs       = nobs,
+                        lvls.k     = lvls.k,
+                        nms.fe     = nms.fe,
+                        formula    = formula,
+                        data       = data,
+                        family     = family,
+                        control    = control)),
+            class = c("feglm", "feglm.nb"))
 }
