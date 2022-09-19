@@ -1,23 +1,22 @@
 #' @title
-#' Asymptotic bias correction after fitting binary choice models with a two-/three-way error
+#' Asymptotic bias correction after fitting binary choice models with a one-/two-/three-way error
 #' component
 #' @description
 #' \code{\link{biasCorr}} is a post-estimation routine that can be used to substantially reduce the 
-#' incidental parameter bias problem (Neyman and Scott (1948)) present in non-linear fixed effects 
+#' incidental parameter bias problem (Neyman and Scott (1948)) present in nonlinear fixed effects 
 #' models (see Fernández-Val and Weidner (2018) for an overview). The command applies the analytical 
-#' bias correction derived by Fernández-Val and Weinder (2016) and Hinz, Stammann, and Wanner (2020) 
+#' bias correction derived by Fernández-Val and Weidner (2016) and Hinz, Stammann, and Wanner (2020) 
 #' to obtain bias-corrected estimates of the structural parameters and is currently restricted to 
-#' logit and probit models with two- and three-way fixed effects.
+#' \code{\link[stats]{binomial}} with one-, two-, and three-way fixed effects.
 #' @param
-#' object an object of class \code{"feglm"}; currently restricted to \code{\link[stats]{binomial}} 
-#' with \code{"logit"} or \code{"probit"} link function.
+#' object an object of class \code{"feglm"}; currently restricted to \code{\link[stats]{binomial}}.
 #' @param
 #' L unsigned integer indicating a bandwidth for the estimation of spectral densities proposed by 
 #' Hahn and Kuersteiner (2011). Default is zero, which should be used if all regressors are 
-#' assumed to be strictly exogenous with respect to the error term. In the presence of weakly exogenous 
-#' or predetermined regressors, Fernández-Val and Weidner (2016, 2018) suggest to choose a bandwidth 
-#' zero and four. Note that the order of factors to be partialed out is important for bandwidths larger 
-#' than zero (see vignette for details).
+#' assumed to be strictly exogenous with respect to the idiosyncratic error term. In the presence of 
+#' weakly exogenous regressors, e.g. lagged outcome variables, Fernández-Val and Weidner (2016, 2018) 
+#' suggest to choose a bandwidth between one and four. Note that the order of factors to be partialed 
+#' out is important for bandwidths larger than zero (see vignette for details).
 #' @param
 #' panel.structure a string equal to \code{"classic"} or \code{"network"} which determines the 
 #' structure of the panel used. \code{"classic"} denotes panel structures where for example the same
@@ -61,10 +60,11 @@
 #' summary(mod.bc)
 #' }
 #' @export
-biasCorr <- function(object          = NULL,
-                     L               = 0L,
-                     panel.structure = c("classic", "network")) {
-  # TODO: Add further bias corrections
+biasCorr <- function(
+    object          = NULL,
+    L               = 0L,
+    panel.structure = c("classic", "network")
+  ) {
   # Check validity of 'object'
   if (is.null(object)) {
     stop("'object' has to be specified.", call. = FALSE)
@@ -76,38 +76,39 @@ biasCorr <- function(object          = NULL,
   panel.structure <- match.arg(panel.structure)
   
   # Extract model information
+  beta.uncorr <- object[["coefficients"]]
   control <- object[["control"]]
   data <- object[["data"]]
+  eps <- .Machine[["double.eps"]]
   family <- object[["family"]]
   formula <- object[["formula"]]
   lvls.k <- object[["lvls.k"]]
+  nms.sp <- names(beta.uncorr)
+  nt <- object[["nobs"]][["nobs"]]
   k.vars <- names(lvls.k)
   k <- length(lvls.k)
   
   # Check if binary choice model
-  if (family[["family"]] != "binomial" || !(family[["link"]] %in% c("logit", "probit"))) {
-    stop(paste("'biasCorr' currently only supports logit and probit models."), call. = FALSE)
+  if (family[["family"]] != "binomial") {
+    stop("'biasCorr' currently only supports binary choice models.", call. = FALSE)
   }
   
   # Check if provided object matches requested panel structure
   if (panel.structure == "classic") {
-    if (length(lvls.k) != 2L) {
-      stop(paste("panel.structure == 'classic' expects a two-way fixed effects model."), call. = FALSE)
+    if (!(k %in% c(1L, 2L))) {
+      stop("panel.structure == 'classic' expects a one- or two-way fixed effects model.", call. = FALSE)
     }
   } else {
-    if (!(length(lvls.k) %in% c(2L, 3L))) {
-      stop(paste("panel.structure == 'network' expects a two- or three-way fixed effects model."), call. = FALSE)
+    if (!(k %in% c(2L, 3L))) {
+      stop("panel.structure == 'network' expects a two- or three-way fixed effects model.", call. = FALSE)
     }
   }
   
-  # Extract model response and regressor matrix
+  # Extract model response, regressor matrix, and weights
   y <- data[[1L]]
-  if (!all(y %in% c(0L, 1L))) {
-    stop("'biasCorr' currently only supports models with binary outcome.", call. = FALSE)
-  }
   X <- model.matrix(formula, data, rhs = 1L)[, - 1L, drop = FALSE]
-  nms.sp <- attr(X, "dimnames")[[2L]]
   attr(X, "dimnames") <- NULL
+  wt <- object[["weights"]]
   
   # Generate auxiliary list of indexes for different sub panels
   k.list <- getIndexList(k.vars, data)
@@ -116,52 +117,83 @@ biasCorr <- function(object          = NULL,
   eta <- object[["eta"]]
   mu <- family[["linkinv"]](eta)
   mu.eta <- family[["mu.eta"]](eta)
-  if (family[["link"]] == "logit") {
-    v <- y - mu
-    w <- mu.eta
-    z <- w * (1.0 - 2.0 * mu)
-  } else {
-    w <- mu.eta / family[["variance"]](mu)
-    v <- w * (y - mu)
-    w <- w * mu.eta
-    z <- - eta * w
+  v <- wt * (y - mu)
+  w <- wt * mu.eta
+  z <- wt * partialMuEta(eta, family, 2L)
+  if (family[["link"]] != "logit") {
+    h <- mu.eta / family[["variance"]](mu)
+    v <- h * v
+    w <- h * w
+    z <- h * z
+    rm(h)
   }
   
-  # Centering variables
-  MX <- object[["Score"]] / v
+  # Center regressor matrix (if required)
+  if (control[["keep.mx"]]) {
+    MX <- object[["MX"]]
+  } else {
+    MX <- centerVariables(X, w, k.list, control[["center.tol"]])
+  }
   
   # Compute bias terms for requested bias correction
   if (panel.structure == "classic") {
-    # Compute \hat{B}
-    b <- as.vector(groupSums(MX * z, w, k.list[[1L]])) / 2.0
-    if (L > 0L) {
-      b <- b + as.vector(groupSumsSpectral(MX * w, v, w, L, k.list[[1L]]))
+    # Compute \hat{B} and \hat{D}
+    b <- as.vector(groupSums(MX * z, w, k.list[[1L]])) / 2.0 / nt
+    if (k > 1L) {
+      b <- b + as.vector(groupSums(MX * z, w, k.list[[2L]])) / 2.0 / nt
     }
     
-    # Compute \hat{D}
-    b <- b + as.vector(groupSums(MX * z, w, k.list[[2L]])) / 2.0
+    # Compute spectral density part of \hat{B}
+    if (L > 0L) {
+      b <- b + as.vector(groupSumsSpectral(MX * w, v, w, L, k.list[[1L]])) / nt
+    }
   } else {
-    # Compute \hat{D}_{1}
-    b <- as.vector(groupSums(MX * z, w, k.list[[1L]])) / 2.0
+    # Compute \hat{D}_{1}, \hat{D}_{2}, and \hat{B}
+    b <- as.vector(groupSums(MX * z, w, k.list[[1L]])) / 2.0 / nt
+    b <- b + as.vector(groupSums(MX * z, w, k.list[[2L]])) / 2.0 / nt
+    if (k > 2L) {
+      b <- b + as.vector(groupSums(MX * z, w, k.list[[3L]])) / 2.0 / nt
+    }
     
-    # Compute \hat{D}_{2}
-    b <- b + as.vector(groupSums(MX * z, w, k.list[[2L]])) / 2.0
-    
-    # Compute \hat{B}
-    if (k == 3L) {
-      b <- b + as.vector(groupSums(MX * z, w, k.list[[3L]])) / 2.0
-      if (L > 0L) {
-        b <- b + as.vector(groupSumsSpectral(MX * w, v, w, L, k.list[[3L]]))
-      }
+    # Compute spectral density part of \hat{B}
+    if (k > 2L && L > 0L) {
+      b <- b + as.vector(groupSumsSpectral(MX * w, v, w, L, k.list[[3L]])) / nt
     }
   }
   
   # Compute bias-corrected structural parameters
-  beta <- object[["coefficients"]] - solve(object[["Hessian"]], - b)
+  b <- solve(object[["Hessian"]] / nt, - b)
+  beta <- beta.uncorr - b
   names(beta) <- nms.sp
+  
+  # Update \eta and first- and second-order derivatives
+  eta <- feglmOffset(object, as.vector(X %*% beta))
+  mu <- family[["linkinv"]](eta)
+  mu.eta <- family[["mu.eta"]](eta)
+  v <- wt * (y - mu)
+  w <- wt * mu.eta
+  if (family[["link"]] != "logit") {
+    h <- mu.eta / family[["variance"]](mu)
+    v <- h * v
+    w <- h * w
+    rm(h)
+  }
+  
+  # Update centered regressor matrix
+  MX <- centerVariables(X, w, k.list, control[["center.tol"]])
+  colnames(MX) <- nms.sp
+  
+  # Update Hessian
+  H <- crossprod(MX * sqrt(w))
+  dimnames(H) <- list(nms.sp, nms.sp)
   
   # Update result list
   object[["coefficients"]] <- beta
+  object[["eta"]] <- eta
+  if (control[["keep.mx"]]) object[["MX"]] <- MX
+  object[["Hessian"]] <- H
+  object[["coefficients.uncorr"]] <- beta.uncorr
+  object[["bias.term"]] <- b
   object[["panel.structure"]] <- panel.structure
   object[["bandwidth"]] <- L
   

@@ -23,6 +23,8 @@
 #' function. Default is \code{binomial()}. See \code{\link[stats]{family}} for details of family 
 #' functions.
 #' @param
+#' weights an optional string with the name of the 'prior weights' variable in \code{data}.
+#' @param
 #' beta.start an optional vector of starting values for the structural parameters in the linear 
 #' predictor. Default is \eqn{\boldsymbol{\beta} = \mathbf{0}}{\beta = 0}.
 #' @param
@@ -31,7 +33,7 @@
 #' control a named list of parameters for controlling the fitting process. See 
 #' \code{\link{feglmControl}} for details.
 #' @details
-#' If \code{\link{feglm}} does not converge this is usually a sign of linear dependence between 
+#' If \code{\link{feglm}} does not converge this is often a sign of linear dependence between 
 #' one or more regressors and a fixed effects category. In this case, you should carefully inspect 
 #' your model specification.
 #' @return
@@ -39,6 +41,9 @@
 #' @references
 #' Gaure, S. (2013). "OLS with Multiple High Dimensional Category Variables". Computational
 #' Statistics and Data Analysis, 66.
+#' @references 
+#' Marschner, I. (2011). "glm2: Fitting generalized linear models with convergence problems". 
+#' The R Journal, 3(2).
 #' @references 
 #' Stammann, A., F. Heiss, and D. McFadden (2016). "Estimating Fixed Effects Logit Models with 
 #' Large Panel Data". Working paper.
@@ -56,27 +61,30 @@
 #' summary(mod)
 #' }
 #' @export
-feglm <- function(formula       = NULL,
-                  data          = NULL,
-                  family        = binomial(),
-                  beta.start    = NULL,
-                  eta.start     = NULL,
-                  control       = NULL) {
-  # Validity of input argument (formula)
+feglm <- function(
+    formula       = NULL,
+    data          = NULL,
+    family        = binomial(),
+    weights       = NULL,
+    beta.start    = NULL,
+    eta.start     = NULL,
+    control       = NULL
+    ) {
+  # Check validity of formula
   if (is.null(formula)) {
     stop("'formula' has to be specified.", call. = FALSE)
   } else if (!inherits(formula, "formula")) {
     stop("'formula' has to be of class formula.", call. = FALSE)
   }
   
-  # Validity of input argument (data)
+  # Check validity of data
   if (is.null(data)) {
     stop("'data' has to be specified.", call. = FALSE)
   } else if (!inherits(data, "data.frame")) {
     stop("'data' has to be of class data.frame.", call. = FALSE)
   }
   
-  # Validity of input argument (family)
+  # Check validity of family
   # NOTE: Quasi families not supported yet
   if (!inherits(family, "family")) {
     stop("'family' has to be of class family", call. = FALSE)
@@ -89,11 +97,11 @@ feglm <- function(formula       = NULL,
     stop("Please use 'feglm.nb' instead.", call. = FALSE)
   }
   
-  # Validity of input argument (control)
+  # Check validity of control
   if (is.null(control)) {
     control <- list()
   } else if (!inherits(control, "list")) {
-    stop("'control' has to be of class list.", call. = FALSE)
+    stop("'control' has to be a list.", call. = FALSE)
   }
   
   # Extract control list
@@ -107,7 +115,7 @@ feglm <- function(formula       = NULL,
   
   # Generate model.frame
   setDT(data)
-  data <- data[, all.vars(formula), with = FALSE]
+  data <- data[, c(all.vars(formula), weights), with = FALSE]
   lhs <- names(data)[[1L]]
   nobs.full <- nrow(data)
   data <- na.omit(data)
@@ -154,17 +162,24 @@ feglm <- function(formula       = NULL,
   # Generate temporary variable for operations on the data.table
   tmp.var <- tempVar(data)
   
-  # Drop observations that do not contribute to the loglikelihood if requested 
+  # Drop observations that do not contribute to the log likelihood if requested 
   if (family[["family"]] %in% c("binomial", "poisson")) {
     if (control[["drop.pc"]]) {
-      for (i in k.vars) {
-        data[, (tmp.var) := mean(get(lhs)), by = eval(i)]
-        if (family[["family"]] == "binomial") {
-          data <- data[get(tmp.var) > 0.0 & get(tmp.var) < 1.0]
-        } else {
-          data <- data[get(tmp.var) > 0.0]
+      repeat {
+        # Drop observations that do not contribute to the log-likelihood
+        ncheck <- nrow(data)
+        for (j in k.vars) {
+          data[, (tmp.var) := mean(get(lhs)), by = eval(j)]
+          if (family[["family"]] == "binomial") {
+            data <- data[get(tmp.var) > 0.0 & get(tmp.var) < 1.0]
+          } else {
+            data <- data[get(tmp.var) > 0.0]
+          }
+          data[, (tmp.var) := NULL]
         }
-        data[, (tmp.var) := NULL]
+        
+        # Check termination
+        if (ncheck == nrow(data)) break
       }
     }
   }
@@ -178,21 +193,38 @@ feglm <- function(formula       = NULL,
   
   # Determine number of dropped observations
   nt <- nrow(data)
-  nobs <- c(nobs.full = nobs.full,
-            nobs.na   = nobs.na,
-            nobs.pc   = nobs.full - nt,
-            nobs      = nt)
+  nobs <- c(
+    nobs.full = nobs.full,
+    nobs.na   = nobs.na,
+    nobs.pc   = nobs.full - nt,
+    nobs      = nt
+    )
   
   # Extract model response and regressor matrix
   y <- data[[1L]]
   X <- model.matrix(formula, data, rhs = 1L)[, - 1L, drop = FALSE]
   nms.sp <- attr(X, "dimnames")[[2L]]
   attr(X, "dimnames") <- NULL
+  p <- ncol(X)
   
   # Check for linear dependence in 'X'
-  p <- ncol(X)
   if (qr(X)[["rank"]] < p) {
-    stop("Linear dependent terms detected!", call. = FALSE)
+    stop("Linear dependent terms detected.", call. = FALSE)
+  }
+  
+  # Extract weights if required
+  if (is.null(weights)) {
+    wt <- rep(1.0, nt)
+  } else {
+    wt <- data[[weights]]
+  }
+  
+  # Check validity of weights
+  if (!is.numeric(wt)) {
+    stop("weights must be numeric.", call. = FALSE)
+  }
+  if (any(wt < 0.0)) {
+    stop("negative weights are not allowed.", call. = FALSE)
   }
   
   # Compute and check starting guesses
@@ -206,8 +238,7 @@ feglm <- function(formula       = NULL,
     if (!is.null(beta.start)) {
       # Validity of input argument (beta.start)
       if (length(beta.start) != p) {
-        stop("Length of 'beta.start' has to be equal to the number of structural parameters.",
-             call. = FALSE)
+        stop("Length of 'beta.start' has to be equal to the number of structural parameters.", call. = FALSE)
       }
       
       # Set starting guesses
@@ -226,17 +257,18 @@ feglm <- function(formula       = NULL,
   } else {
     # Compute starting guesses if not user specified
     beta <- numeric(p)
-    eta <- numeric(nt)
-    for (i in k.vars) {
-      data[, (tmp.var) := mean(get(lhs)), by = eval(i)]
-      if (family[["family"]] == "binomial") {
-        eta <- eta + family[["linkfun"]]((data[[tmp.var]] + 0.5) / 2.0) / k
-      } else if (family[["family"]] %in% c("Gamma", "inverse.gaussian")) {
-        eta <- eta + family[["linkfun"]](data[[tmp.var]]) / k
-      } else {
-        eta <- eta + family[["linkfun"]](data[[tmp.var]] + 0.1) / k
-      }
-      data[, (tmp.var) := NULL]
+    if (family[["family"]] == "binomial") {
+      eta <- rep(family[["linkfun"]](sum(wt * (y + 0.5) / 2.0) / sum(wt)), nt)
+      # eta <- rep(mean(family[["linkfun"]]((y + 0.5) / 2.0)), nt)
+      # eta <- family[["linkfun"]]((y + 0.5) / 2.0) # GLM
+    } else if (family[["family"]] %in% c("Gamma", "inverse.gaussian")) {
+      eta <- rep(family[["linkfun"]](sum(wt * y) / sum(wt)), nt)
+      # eta <- rep(mean(family[["linkfun"]](y)), nt)
+      # eta <- family[["linkfun"]](y) # GLM
+    } else {
+      eta <- rep(family[["linkfun"]](sum(wt * (y + 0.1)) / sum(wt)), nt)
+      # eta <- rep(mean(family[["linkfun"]](y + 0.1)), nt)
+      # eta <- family[["linkfun"]](y + 0.1) # GLM
     }
   }
   rm(beta.start, eta.start)
@@ -249,21 +281,29 @@ feglm <- function(formula       = NULL,
   k.list <- getIndexList(k.vars, data)
   
   # Fit generalized linear model
-  fit <- feglmFit(beta, eta, y, X, k.list, family, control)
+  fit <- feglmFit(beta, eta, y, X, wt, k.list, family, control)
   rm(y, X, eta)
   
-  # Add names to \beta, Scores, and Hessian
+  # Add names to \beta, Hessian, and MX (if provided)
   names(fit[["coefficients"]]) <- nms.sp
-  colnames(fit[["Score"]]) <- nms.sp
+  if (control[["keep.mx"]]) {
+    colnames(fit[["MX"]]) <- nms.sp
+  }
   dimnames(fit[["Hessian"]]) <- list(nms.sp, nms.sp)
   
+  # Generate result list
+  reslist <- c(
+    fit, list(
+      nobs    = nobs,
+      lvls.k  = lvls.k,
+      nms.fe  = nms.fe,
+      formula = formula,
+      data    = data,
+      family  = family,
+      control = control
+      )
+  )
+  
   # Return result list
-  structure(c(fit, list(nobs    = nobs,
-                        lvls.k  = lvls.k,
-                        nms.fe  = nms.fe,
-                        formula = formula,
-                        data    = data,
-                        family  = family,
-                        control = control)),
-            class = "feglm")
+  structure(reslist, class = "feglm")
 }

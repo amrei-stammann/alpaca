@@ -8,7 +8,7 @@
 #'  \alpha_{i} + \gamma_{t} \, ,}{\eta = X \beta + \alpha + 
 #'  \gamma,}
 #' where \eqn{\mathbf{X}}{X} consists of three independent standard normally distributed regressors.
-#' Both parameter refering to the unobserved heterogeneity (\eqn{\alpha_{i}}{\alpha} and 
+#' Both parameter referring to the unobserved heterogeneity (\eqn{\alpha_{i}}{\alpha} and 
 #' \eqn{\gamma_{t}}{\gamma}) are generated as iid. standard normal and the structural parameters are
 #' set to \eqn{\boldsymbol{\beta} = [1, - 1, 1]^{\prime}}{\beta = [1, - 1, 1]'}.
 #' 
@@ -27,10 +27,12 @@
 #' @seealso
 #' \code{\link{feglm}}
 #' @export
-simGLM <- function(n     = NULL,
-                   t     = NULL,
-                   seed  = NULL,
-                   model = c("logit", "poisson", "gamma")) {
+simGLM <- function(
+  n     = NULL,
+  t     = NULL,
+  seed  = NULL,
+  model = c("logit", "poisson", "gamma")
+  ) {
   # Validity check 'n'
   if (is.null(n)) {
     stop("'n' has to be specified.")
@@ -81,5 +83,9 @@ simGLM <- function(n     = NULL,
   }
   
   # Return data.frame
-  data.frame(i = rep(seq.int(n), each = t), t = rep.int(seq.int(t), n), y, X)
+  data.frame(
+    i = rep(seq.int(n), each = t),
+    t = rep.int(seq.int(t), n),
+    y, X
+    )
 }

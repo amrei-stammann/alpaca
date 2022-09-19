@@ -7,11 +7,12 @@
 \usage{
 feglmControl(
   dev.tol = 1e-08,
-  center.tol = 1e-05,
+  center.tol = 1e-08,
   iter.max = 25L,
   limit = 10L,
   trace = FALSE,
   drop.pc = TRUE,
+  keep.mx = TRUE,
   conv.tol = NULL,
   rho.tol = NULL,
   pseudo.tol = NULL,
@@ -28,7 +29,8 @@ and can be expressed as follows:
 Default is \code{1.0e-08}.}
 
 \item{center.tol}{tolerance level for the stopping condition of the centering algorithm.
-The stopping condition is based on the relative change of the euclidean norm. Default is \code{1.0e-05}.}
+The stopping condition is based on the relative change of the centered variable similar to
+\link[lfe]{felm}. Default is \code{1.0e-08}.}
 
 \item{iter.max}{unsigned integer indicating the maximum number of iterations in the maximization
 routine. Default is \code{25L}.}
@@ -42,6 +44,10 @@ routine. Default is \code{25L}.}
 do not contribute to the log-likelihood. This option is useful to reduce the computational costs of
 the maximization problem and improves the numerical stability of the algorithm. Note that dropping
 perfectly separated observations does not affect the estimates. Default is \code{TRUE}.}
+
+\item{keep.mx}{logical indicating if the centered regressor matrix should be stored. The centered regressor
+matrix is required for some covariance estimators, bias corrections, and average partial effects. This
+option saves some computation time at the cost of memory. Default is \code{TRUE}.}
 
 \item{conv.tol, rho.tol}{deprecated; step-halving is now similar to \code{glm.fit2}.}
 

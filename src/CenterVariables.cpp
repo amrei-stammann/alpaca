@@ -3,31 +3,35 @@
 
 // Method of alternating projections (Halperin)
 // [[Rcpp::export(name = "centerVariables")]]
-arma::mat CenterVariables(const arma::mat& V,
-                          const arma::vec& w,
-                          const Rcpp::List& klist,
-                          const double tol) {
+arma::mat CenterVariables(
+    const arma::mat& V,
+    const arma::vec& w,
+    const Rcpp::List& klist,
+    const double tol
+  ) {
   // Auxiliary variables (fixed)
   const int n = V.n_rows;
   const int K = klist.size();
   const int P = V.n_cols;
+  const double sw = arma::accu(w);
   
   // Auxiliary variables (storage)
-  double adjtol, c, crit, delta, delta0, denom, meanj, num, wt;
+  double delta, denom, meanj, num, wt;
   int index, iter, j, k, p, t, J, T;
-  arma::mat M = V;
+  arma::mat M(n, P);
+  arma::vec x(n);
   arma::vec x0(n);
   
   // Halperin projections
   for (p = 0 ; p < P ; ++p) {
     // Center each variable
-    delta0 = 2.0 * arma::norm(M.col(p), 2);
-    for (iter = 0 ; iter < 10000 ; ++iter) {
+    x = V.col(p);
+    for (iter = 0 ; iter < 100000 ; ++iter) {
       // Check user interrupt
       Rcpp::checkUserInterrupt();
       
-      // Store vector from the last iteration
-      x0 = M.col(p);
+      // Store centered vector from the last iteration
+      x0 = x;
       
       // Alternate between categories
       for (k = 0 ; k < K ; ++k) {
@@ -45,31 +49,26 @@ arma::mat CenterVariables(const arma::mat& V,
           for (t = 0 ; t < T ; ++t) {
             index = indexes[t];
             wt = w(index);
-            num += wt * M(index, p);
-            denom += std::pow(wt, 2);
+            num += wt * x(index);
+            denom += wt;
           }
           
           // Subtract weighted group mean
           meanj = num / denom;
           for (t = 0 ; t < T ; ++t) {
             index = indexes[t];
-            M(index, p) -= w(index) * meanj;
+            x(index) -= meanj;
           }
         }
       }
       
-      // Compute termination criteria and check convergence
-      delta = arma::norm(M.col(p) - x0, 2);
-      c = delta / delta0;
-      adjtol = std::sqrt(1.0 + arma::accu(arma::pow(x0, 2))) * tol;
-      crit = delta / (1.0 - c);
-      if (crit <= adjtol) {
+      // Check convergence
+      delta = arma::accu(arma::abs(x - x0) / (1.0 + arma::abs(x0)) % w) / sw;
+      if (delta < tol) {
         break;
       }
-      
-      // Store \delta from the previous iteration
-      delta0 = delta;
     }
+    M.col(p) = x;
   }
   
   // Return matrix with centered variables

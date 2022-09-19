@@ -47,11 +47,13 @@ arma::vec GroupSums(const arma::mat& M,
 
 
 // [[Rcpp::export(name = "groupSumsSpectral")]]
-arma::vec GroupSumsSpectral(const arma::mat& M,
-                            const arma::vec& v,
-                            const arma::vec& w,
-                            const int L,
-                            const Rcpp::List& jlist) {
+arma::vec GroupSumsSpectral(
+    const arma::mat& M,
+    const arma::vec& v,
+    const arma::vec& w,
+    const int L,
+    const Rcpp::List& jlist
+  ) {
   // Auxiliary variables (fixed)
   const int J = jlist.size();
   const int P = M.n_cols;
@@ -95,8 +97,10 @@ arma::vec GroupSumsSpectral(const arma::mat& M,
 
 
 // [[Rcpp::export(name = "groupSumsVar")]]
-arma::mat GroupSumsVar(const arma::mat& M,
-                       const Rcpp::List& jlist) {
+arma::mat GroupSumsVar(
+    const arma::mat& M,
+    const Rcpp::List& jlist
+  ) {
   // Auxiliary variables (fixed)
   const int J = jlist.size();
   const int P = M.n_cols;
@@ -131,9 +135,11 @@ arma::mat GroupSumsVar(const arma::mat& M,
 
 
 // [[Rcpp::export(name = "groupSumsCov")]]
-arma::mat GroupSumsCov(const arma::mat& M,
-                       const arma::mat& N,
-                       const Rcpp::List& jlist) {
+arma::mat GroupSumsCov(
+    const arma::mat& M,
+    const arma::mat& N,
+    const Rcpp::List& jlist
+  ) {
   // Auxiliary variables (fixed)
   const int J = jlist.size();
   const int P = M.n_cols;

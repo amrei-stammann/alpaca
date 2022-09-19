@@ -27,7 +27,7 @@ periods for logit, poisson, or gamma models. The \dQuote{true} linear predictor
  \alpha_{i} + \gamma_{t} \, ,}{\eta = X \beta + \alpha + 
  \gamma,}
 where \eqn{\mathbf{X}}{X} consists of three independent standard normally distributed regressors.
-Both parameter refering to the unobserved heterogeneity (\eqn{\alpha_{i}}{\alpha} and 
+Both parameter referring to the unobserved heterogeneity (\eqn{\alpha_{i}}{\alpha} and 
 \eqn{\gamma_{t}}{\gamma}) are generated as iid. standard normal and the structural parameters are
 set to \eqn{\boldsymbol{\beta} = [1, - 1, 1]^{\prime}}{\beta = [1, - 1, 1]'}.
 

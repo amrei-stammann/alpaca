@@ -2,21 +2,20 @@
 % Please edit documentation in R/biasCorr.R
 \name{biasCorr}
 \alias{biasCorr}
-\title{Asymptotic bias correction after fitting binary choice models with a two-/three-way error
+\title{Asymptotic bias correction after fitting binary choice models with a one-/two-/three-way error
 component}
 \usage{
 biasCorr(object = NULL, L = 0L, panel.structure = c("classic", "network"))
 }
 \arguments{
-\item{object}{an object of class \code{"feglm"}; currently restricted to \code{\link[stats]{binomial}} 
-with \code{"logit"} or \code{"probit"} link function.}
+\item{object}{an object of class \code{"feglm"}; currently restricted to \code{\link[stats]{binomial}}.}
 
 \item{L}{unsigned integer indicating a bandwidth for the estimation of spectral densities proposed by 
 Hahn and Kuersteiner (2011). Default is zero, which should be used if all regressors are 
-assumed to be strictly exogenous with respect to the error term. In the presence of weakly exogenous 
-or predetermined regressors, Fernández-Val and Weidner (2016, 2018) suggest to choose a bandwidth 
-zero and four. Note that the order of factors to be partialed out is important for bandwidths larger 
-than zero (see vignette for details).}
+assumed to be strictly exogenous with respect to the idiosyncratic error term. In the presence of 
+weakly exogenous regressors, e.g. lagged outcome variables, Fernández-Val and Weidner (2016, 2018) 
+suggest to choose a bandwidth between one and four. Note that the order of factors to be partialed 
+out is important for bandwidths larger than zero (see vignette for details).}
 
 \item{panel.structure}{a string equal to \code{"classic"} or \code{"network"} which determines the 
 structure of the panel used. \code{"classic"} denotes panel structures where for example the same
@@ -30,11 +29,11 @@ The function \code{\link{biasCorr}} returns a named list of classes \code{"biasC
 }
 \description{
 \code{\link{biasCorr}} is a post-estimation routine that can be used to substantially reduce the 
-incidental parameter bias problem (Neyman and Scott (1948)) present in non-linear fixed effects 
+incidental parameter bias problem (Neyman and Scott (1948)) present in nonlinear fixed effects 
 models (see Fernández-Val and Weidner (2018) for an overview). The command applies the analytical 
-bias correction derived by Fernández-Val and Weinder (2016) and Hinz, Stammann, and Wanner (2020) 
+bias correction derived by Fernández-Val and Weidner (2016) and Hinz, Stammann, and Wanner (2020) 
 to obtain bias-corrected estimates of the structural parameters and is currently restricted to 
-logit and probit models with two- and three-way fixed effects.
+\code{\link[stats]{binomial}} with one-, two-, and three-way fixed effects.
 }
 \examples{
 \donttest{

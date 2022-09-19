@@ -1,5 +1,22 @@
 \name{NEWS}
 \title{alpaca news}
+\section{Changes in version 0.3.4}{
+  \itemize{
+    \item Added \code{vcov.APEs()} generic to extract the covariance matrix after \code{getAPEs()}.
+    \item Improved the finite sample performance of bias corrections for the average partial effects in case of perfectly classified observations.
+    \item Bias corrections for the average partial effects, i.e. \code{getAPEs()} after \code{biasCorr()}, do not require an offset algorithm anymore.
+    \item The default option 'n.pop' in \code{getAPEs()} has been changed. Now the estimated covariance consists of the delta method part only, i.e. correction factor = 0.
+    \item Improved the numerical stability of the bias corrections.
+    \item \code{biasCorr()} now also supports one-way fixed effects models.
+    \item Added bias corrections for 'cloglog' and 'cauchit'.
+    \item \code{feglm()} and \code{feglm.nb()} do not return a matrix of scores anymore. Instead they, optionally, return the centered regressor matrix. The corresponding option in \code{feglmControl()} is 'keep.mx'. Default is TRUE.
+    \item Improved the numerical stability of the step-halving in \code{feglm()}.
+    \item Changed the projection in the MAP algorithm.
+    \item The default option 'center.tol' in \code{feglmControl()} has been lowered to better handle fitting problems that are not well-behaved.
+    \item Added optional 'weights' argument to \code{feglm()} and \code{feglm.nb()}.
+    \item Updated documentation.
+  }
+}
 \section{Changes in version 0.3.3}{
   \itemize{
     \item Stopping condition of \code{feglm.nb()} has been adjusted to better match that of \code{glm.nb()}.

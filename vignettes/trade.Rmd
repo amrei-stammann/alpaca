@@ -13,7 +13,7 @@ vignette: >
 
 In econometrics, fixed effects models are popular to control for unobserved heterogeneity in data sets with a panel structure. In non-linear models this is usually done by including a dummy variable for each level of a fixed effects category. This approach can quickly become infeasible if the number of levels and/or fixed effects categories increases (either due to memory or time limitations).
 
-Two examples of this limitation can be found in the literature on international trade. Firstly, when it comes to estimating the determinants of trade volumes (intensive margin) or secondly, when it comes to the export decisions (extensive margin). In order to demonstrate the functionality and capablilities of `alpaca`, we replicate parts of @lwyz19 as an example for the intensive margin and extend it to the extensive margin. Our example is based on the panel data set of 2,973,168 bilateral trade flows used by @gr16. For our estimations we specify a three-way error component with 56,608 levels.
+Two examples of this limitation can be found in the literature on international trade. Firstly, when it comes to estimating the determinants of trade volumes (intensive margin) or secondly, when it comes to the export decisions (extensive margin). In order to demonstrate the functionality and capabilities of `alpaca`, we replicate parts of @lwyz19 as an example for the intensive margin and extend it to the extensive margin. Our example is based on the panel data set of 2,973,168 bilateral trade flows used by @gr16. For our estimations we specify a three-way error component with 56,608 levels.
 
 ## Data preparation
 
@@ -23,16 +23,21 @@ The data set is available either from [Andrew Rose's website][1] or from [scienc
 [2]: https://www.sciencedirect.com/science/article/pii/S0014292116300630#ec0005
 
 ```{r, eval = FALSE}
-# Import the data set
-library(haven)
+# Required packages
+library(alpaca)
 library(data.table)
+library(haven)
+
+# Import the data set
 cudata <- read_dta("dataaxj1.dta")
 setDT(cudata)
 
-# Subsetting relevant variables
-var.nms <- c("exp1to2", "custrict11", "ldist", "comlang", "border", "regional",
-             "comcol", "curcol", "colony", "comctry", "cuwoemu", "emu", "cuc",
-             "cty1", "cty2", "year", "pairid")
+# Subset relevant variables
+var.nms <- c(
+  "exp1to2", "custrict11", "ldist", "comlang", "border", "regional",
+  "comcol", "curcol", "colony", "comctry", "cuwoemu", "emu", "cuc",
+  "cty1", "cty2", "year", "pairid"
+  )
 cudata <- cudata[, var.nms, with = FALSE]
 
 # Generate identifiers required for structural gravity
@@ -65,13 +70,16 @@ cudata[, cuua := as.numeric(cuc == "ua")]
 cudata[, cuus := as.numeric(cuc == "us")]
 cudata[, cuwa := as.numeric(cuc == "wa")]
 cudata[, cuwoo := custrict11]
-cudata[cuc %in% c("em", "au", "cf", "ec", "fr", "gb", "in", "us"), cuwoo := 0L]
+cudata[cuc %in% c("em", "au", "cf", "ec", "fr", "gb", "in", "us"), cuwoo := 0]
 
 # Set missing trade flows to zero
-cudata[is.na(exp1to2), exp1to2 := 0.0]
+cudata[is.na(exp1to2), exp1to2 := 0]
+
+# Re-scale trade flows
+cudata[, exp1to2 := exp1to2 / 1000]
 
 # Construct binary and lagged dependent variable for the extensive margin
-cudata[, trade := as.numeric(exp1to2 > 0.0)]
+cudata[, trade := as.numeric(exp1to2 > 0)]
 cudata[, ltrade := shift(trade), by = pairid]
 ```
 
@@ -84,49 +92,52 @@ If we want `feglm()` to report standard errors that are clustered by variables, 
 
 First we report robust standard errors indicated by the option `"sandwich"` in `summary()`.
 ```{r, eval = FALSE}
-mod <- feglm(exp1to2 ~ emu + cuwoo + cuau + cucf + cuec + cufr + cugb + cuin + cuus +
-               regional + curcol | exp.time + imp.time + pairid | cty1 + cty2 + year, cudata,
-             family = poisson())
+mod <- feglm(
+  exp1to2 ~ emu + cuwoo + cuau + cucf + cuec + cufr + cugb + cuin + cuus +
+    regional + curcol | exp.time + imp.time + pairid | cty1 + cty2 + year,
+  data   = cudata,
+  family = poisson()
+  )
 summary(mod, "sandwich")
 ```
 
 ```{r, eval = FALSE}
 ## poisson - log link
 ## 
-## exp1to2 ~ emu + cuwoo + cuau + cucf + cuec + cufr + cugb + cuin + 
-##     cuus + regional + curcol | exp.time + imp.time + pairid | 
+## exp1to2 ~ emu + cuwoo + cuau + cucf + cuec + cufr + cugb + cuin +
+##     cuus + regional + curcol | exp.time + imp.time + pairid |
 ##     cty1 + cty2 + year
 ## 
 ## Estimates:
-##           Estimate Std. error z value Pr(> |z|)    
+##           Estimate Std. error z value Pr(> |z|)
 ## emu       0.048895   0.010277   4.758  1.96e-06 ***
 ## cuwoo     0.765988   0.053272  14.379   < 2e-16 ***
-## cuau      0.384469   0.118832   3.235   0.00121 ** 
-## cucf     -0.125608   0.099674  -1.260   0.20760    
+## cuau      0.384469   0.118832   3.235   0.00121 **
+## cucf     -0.125608   0.099674  -1.260   0.20760
 ## cuec     -0.877318   0.083451 -10.513   < 2e-16 ***
 ## cufr      2.095726   0.062952  33.291   < 2e-16 ***
 ## cugb      1.059957   0.034680  30.564   < 2e-16 ***
-## cuin      0.169745   0.147029   1.154   0.24830    
-## cuus      0.018323   0.021530   0.851   0.39473    
+## cuin      0.169745   0.147029   1.154   0.24830
+## cuus      0.018323   0.021530   0.851   0.39473
 ## regional  0.159181   0.008714  18.267   < 2e-16 ***
 ## curcol    0.386882   0.046827   8.262   < 2e-16 ***
 ## ---
 ## Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
 ## 
-## residual deviance= 35830778.98,
-## null deviance= 2245707302.17,
+## residual deviance= 35830.78,
+## null deviance= 2245707.30,
 ## n= 1610165, l= [11227, 11277, 34104]
 ## 
 ## ( 1363003 observation(s) deleted due to perfect classification )
 ## 
-## Number of Fisher Scoring Iterations: 13 
+## Number of Fisher Scoring Iterations: 20
 ```
 
-We observe that roughly 1,4 million observations do not contribute to the identification of the structural parameters and we end up with roughly 1,6 million observations and 57,000 fixed effects.
+We observe that roughly 1.4 million observations do not contribute to the identification of the structural parameters and we end up with roughly 1.6 million observations and 57,000 fixed effects.
 
-Replicating the clustered standard errors is straightforward. We simply have to change the option to `"clustered"` and provide `summary` with the requested cluster dimensions.
+Replicating the clustered standard errors is straightforward. We simply have to change the type to `"clustered"` and provide `summary` with the requested cluster dimensions.
 ```{r, eval = FALSE}
-summary(mod, "clustered", cluster = ~ cty1 + cty2 + year)
+summary(mod, type = "clustered", cluster = ~ cty1 + cty2 + year)
 ```
 
 ```{r, eval = FALSE}
@@ -140,7 +151,7 @@ summary(mod, "clustered", cluster = ~ cty1 + cty2 + year)
 ##          Estimate Std. error z value Pr(> |z|)    
 ## emu       0.04890    0.09455   0.517   0.60507    
 ## cuwoo     0.76599    0.24933   3.072   0.00213 ** 
-## cuau      0.38447    0.22356   1.720   0.08547 .  
+## cuau      0.38447    0.22355   1.720   0.08546 .  
 ## cucf     -0.12561    0.35221  -0.357   0.72137    
 ## cuec     -0.87732    0.29493  -2.975   0.00293 ** 
 ## cufr      2.09573    0.30625   6.843  7.75e-12 ***
@@ -152,13 +163,13 @@ summary(mod, "clustered", cluster = ~ cty1 + cty2 + year)
 ## ---
 ## Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
 ## 
-## residual deviance= 35830778.98,
-## null deviance= 2245707302.17,
+## residual deviance= 35830.78,
+## null deviance= 2245707.30,
 ## n= 1610165, l= [11227, 11277, 34104]
 ## 
 ## ( 1363003 observation(s) deleted due to perfect classification )
 ## 
-## Number of Fisher Scoring Iterations: 13 
+## Number of Fisher Scoring Iterations: 20 
 ```
 
 
@@ -167,8 +178,11 @@ summary(mod, "clustered", cluster = ~ cty1 + cty2 + year)
 Our package is also compatible with `linearHypothesis()` of the `car` package. In the next example we show how to test if all currency union effects except being in the EMU are jointly different from zero using a Wald test based on a clustered covariance matrix.
 ```{r, eval = FALSE}
 library(car)
-cus <- c("cuwoo", "cuau", "cucf", "cuec", "cufr", "cugb", "cuin", "cuus")
-linearHypothesis(mod, cus, vcov. = vcov(mod, "clustered", cluster = ~ cty1 + cty2 + year))
+h0_cus <- c("cuwoo", "cuau", "cucf", "cuec", "cufr", "cugb", "cuin", "cuus")
+linearHypothesis(
+  mod, h0_cus,
+  vcov. = vcov(mod, "clustered", cluster = ~ cty1 + cty2 + year)
+  )
 ```
 
 
@@ -194,50 +208,43 @@ linearHypothesis(mod, cus, vcov. = vcov(mod, "clustered", cluster = ~ cty1 + cty
 ## 
 ##   Df  Chisq Pr(>Chisq)    
 ## 1                         
-## 2  8 96.771  < 2.2e-16 ***
+## 2  8 96.772  < 2.2e-16 ***
 ## ---
 ## Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
 ```
 
 ## Estimating the extensive margin of trade
 
-Now we turn to the estimation of the extensive margin. First we estimate a static probit model.
+Now we turn to the estimation of the extensive margin. First we estimate a static logit model.
 ```{r, eval = FALSE}
-mods <- feglm(trade ~ emu + cuwoo + cuau + cucf + cuec + cufr + cugb + cuin + cuus +
-                regional + curcol | exp.time + imp.time + pairid, cudata,
-              family = binomial("probit"))
+mods <- feglm(
+  trade ~ cuwoemu + emu + regional | exp.time + imp.time + pairid,
+  data   = cudata,
+  family = binomial("logit")
+  )
 summary(mods)
 ```
 
 ```{r, eval = FALSE}
-## binomial - probit link
+## binomial - logit link
 ## 
-## trade ~ emu + cuwoo + cuau + cucf + cuec + cufr + cugb + cuin + 
-##     cuus + regional + curcol | exp.time + imp.time + pairid
+## trade ~ cuwoemu + emu + regional | exp.time + imp.time + pairid
 ## 
 ## Estimates:
 ##          Estimate Std. error z value Pr(> |z|)    
-## emu       0.28677    0.12842   2.233  0.025546 *  
-## cuwoo     0.57036    0.07675   7.432  1.07e-13 ***
-## cuau      1.09776    0.28863   3.803  0.000143 ***
-## cucf      0.14035    0.05250   2.673  0.007507 ** 
-## cuec      0.02973    0.63120   0.047  0.962432    
-## cufr      2.31013    0.24334   9.493   < 2e-16 ***
-## cugb      0.18260    0.04252   4.294  1.75e-05 ***
-## cuin      0.25333    0.15696   1.614  0.106519    
-## cuus     -0.36223    0.07908  -4.580  4.64e-06 ***
-## regional  0.06259    0.01782   3.513  0.000444 ***
-## curcol   -0.93748    0.23913  -3.920  8.84e-05 ***
+## cuwoemu   0.41037    0.05103   8.041  8.89e-16 ***
+## emu       0.55108    0.23080   2.388   0.01696 *  
+## regional  0.10193    0.03271   3.116   0.00183 ** 
 ## ---
 ## Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
 ## 
-## residual deviance= 681026.48,
-## null deviance= 1947737.97,
-## n= 1406505, l= [11227, 11273, 29630]
+## residual deviance= 674579.11,
+## null deviance= 1917254.65,
+## n= 1384892, l= [11150, 11218, 29391]
 ## 
-## ( 1566663 observation(s) deleted due to perfect classification )
+## ( 1588276 observation(s) deleted due to perfect classification )
 ## 
-## Number of Fisher Scoring Iterations: 8 
+## Number of Fisher Scoring Iterations: 11 
 ```
 
 To mitigate the incidental parameters problem (see @ns48) we apply the bias correction suggested by @hsw20. Note that the argument `panel.structure = "network"` is necessary to apply the appropriate bias correction.
@@ -247,123 +254,92 @@ summary(modsbc)
 ```
 
 ```{r, eval = FALSE}
-## binomial - probit link
+## binomial - logit link
 ## 
-## trade ~ emu + cuwoo + cuau + cucf + cuec + cufr + cugb + cuin + 
-##     cuus + regional + curcol | exp.time + imp.time + pairid
+## trade ~ cuwoemu + emu + regional | exp.time + imp.time + pairid
 ## 
 ## Estimates:
 ##          Estimate Std. error z value Pr(> |z|)    
-## emu       0.26936    0.12842   2.097  0.035952 *  
-## cuwoo     0.50427    0.07675   6.571  5.01e-11 ***
-## cuau      0.99328    0.28863   3.441  0.000579 ***
-## cucf      0.12976    0.05250   2.472  0.013448 *  
-## cuec     -0.02330    0.63120  -0.037  0.970558    
-## cufr      2.07974    0.24334   8.547   < 2e-16 ***
-## cugb      0.16612    0.04252   3.907  9.35e-05 ***
-## cuin      0.20516    0.15696   1.307  0.191182    
-## cuus     -0.33674    0.07908  -4.258  2.06e-05 ***
-## regional  0.06273    0.01782   3.520  0.000431 ***
-## curcol   -0.72433    0.23913  -3.029  0.002453 ** 
+## cuwoemu   0.37630    0.05107   7.369  1.72e-13 ***
+## emu       0.47213    0.23056   2.048   0.04058 *  
+## regional  0.09942    0.03270   3.040   0.00236 ** 
 ## ---
 ## Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
 ## 
-## residual deviance= 681026.48,
-## null deviance= 1947737.97,
-## n= 1406505, l= [11227, 11273, 29630]
+## residual deviance= 674579.11,
+## null deviance= 1917254.65,
+## n= 1384892, l= [11150, 11218, 29391]
 ## 
-## ( 1566663 observation(s) deleted due to perfect classification )
+## ( 1588276 observation(s) deleted due to perfect classification )
 ## 
-## Number of Fisher Scoring Iterations: 8 
+## Number of Fisher Scoring Iterations: 11
 ```
 
 Because coefficients itself are not very meaningful, researchers are usually interested in so called partial effects (also known as marginal or ceteris paribus effects). A commonly used statistic is the average partial effect. `alpaca` offers a post-estimation routine to estimate average partial effects and their corresponding standard errors. In the following the bias-corrected average partial effects are computed.
 ```{r, eval = FALSE}
-apesbc <- getAPEs(modsbc, n.pop = nrow(cudata))
+apesbc <- getAPEs(modsbc)
 summary(apesbc)
 ```
 
 ```{r, eval = FALSE}
 ## Estimates:
-##           Estimate Std. error z value Pr(> |z|)    
-## emu       0.018890   0.008526   2.216  0.026713 *  
-## cuwoo     0.035655   0.005908   6.035  1.59e-09 ***
-## cuau      0.070750   0.014709   4.810  1.51e-06 ***
-## cucf      0.009045   0.003783   2.391  0.016796 *  
-## cuec     -0.001612   0.038730  -0.042  0.966810    
-## cufr      0.154181   0.023722   6.500  8.05e-11 ***
-## cugb      0.011596   0.002997   3.869  0.000109 ***
-## cuin      0.014349   0.011038   1.300  0.193634    
-## cuus     -0.022868   0.005267  -4.342  1.41e-05 ***
-## regional  0.004360   0.001238   3.521  0.000430 ***
-## curcol   -0.047850   0.018521  -2.584  0.009778 ** 
+##          Estimate Std. error z value Pr(> |z|)    
+## cuwoemu  0.015554   0.001957   7.946  1.92e-15 ***
+## emu      0.019567   0.008212   2.383  0.017185 *  
+## regional 0.004079   0.001189   3.429  0.000605 ***
 ## ---
 ## Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
 ```
 
-@hsw20 propose to estimate the extensive margin using a dynamic specification, where the lagged dependent variable is added to the list of explanatory variables. Again, a bias correction is necessary. Contrary to the one for static models with strictly exogenous covariates, we need to additionally provide a bandwidth parameter (`L`) that is required for the estimation of spectral densities (see @hk11). @fw16 suggest to do a sensitivity analysis and try different values for `L` but not larger than four. Note that in this case the order of factors to be concentrated out, specified in the second part of the formula, is important (importer-/exporter-time identifiers first and pair identifier last).
+@hsw20 propose to estimate the extensive margin using a dynamic specification, where the lagged dependent variable is added to the list of explanatory variables. Again, a bias correction is necessary. Contrary to the one for static models with strictly exogenous regressors, we need to additionally provide a bandwidth parameter (`L`) that is required for the estimation of spectral densities (see @hk11). @fw16 suggest to do a sensitivity analysis and try different values for `L` but not larger than four. Note that in this case the order of factors to be concentrated out, specified in the second part of the formula, is important (importer-/exporter-time identifiers first and pair identifier last).
 ```{r, eval = FALSE}
-modd <- feglm(trade ~ ltrade + emu + cuwoo + cuau + cucf + cuec + cufr + cugb + cuin + cuus +
-                regional + curcol | exp.time + imp.time + pairid, cudata,
-              family = binomial("probit"))
-moddbc <- biasCorr(modd, L = 2L, panel.structure = "network")
+modd <- feglm(
+  trade ~ ltrade + cuwoemu + emu + regional | exp.time + imp.time + pairid,
+  data   = cudata,
+  family = binomial("logit")
+  )
+moddbc <- biasCorr(modd, L = 4, panel.structure = "network")
 summary(moddbc)
 ```
 
 ```{r, eval = FALSE}
-## binomial - probit link
+## binomial - logit link
 ## 
-## trade ~ ltrade + emu + cuwoo + cuau + cucf + cuec + cufr + cugb + 
-##     cuin + cuus + regional + curcol | exp.time + imp.time + pairid
+## trade ~ ltrade + cuwoemu + emu + regional | exp.time + imp.time + 
+##     pairid
 ## 
 ## Estimates:
 ##          Estimate Std. error z value Pr(> |z|)    
-## ltrade    1.24347    0.00443 280.716   < 2e-16 ***
-## emu       0.18254    0.13543   1.348   0.17772    
-## cuwoo     0.41716    0.08064   5.173  2.30e-07 ***
-## cuau      0.79027    0.30405   2.599   0.00935 ** 
-## cucf      0.10150    0.05446   1.864   0.06238 .  
-## cuec      0.17233    0.68493   0.252   0.80135    
-## cufr      1.46437    0.24241   6.041  1.53e-09 ***
-## cugb      0.10085    0.04452   2.265   0.02348 *  
-## cuin      0.17074    0.16391   1.042   0.29757    
-## cuus     -0.25676    0.08216  -3.125   0.00178 ** 
-## regional  0.04644    0.01867   2.488   0.01284 *  
-## curcol   -0.43458    0.25141  -1.729   0.08388 .  
+## ltrade   2.166103   0.008003 270.663   < 2e-16 ***
+## cuwoemu  0.268477   0.054482   4.928  8.31e-07 ***
+## emu      0.312551   0.254091   1.230    0.2187    
+## regional 0.063077   0.035328   1.785    0.0742 .  
 ## ---
 ## Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
 ## 
-## residual deviance= 603824.81,
-## null deviance= 1930471.73,
-## n= 1394201, l= [11133, 11178, 29538]
+## residual deviance= 602773.13,
+## null deviance= 1899840.83,
+## n= 1372471, l= [11054, 11116, 29299]
 ## 
 ## ( 45048 observation(s) deleted due to missingness )
-## ( 1533919 observation(s) deleted due to perfect classification )
+## ( 1555649 observation(s) deleted due to perfect classification )
 ## 
-## Number of Fisher Scoring Iterations: 22 
+## Number of Fisher Scoring Iterations: 11 
 ```
 
-Again we compute bias-corrected average partial effects to get interpretable quantities.
+Again we compute bias-corrected average partial effects to get meaningful quantities.
 ```{r, eval = FALSE}
-apedbc <- getAPEs(moddbc, n.pop = nrow(cudata[!is.na(ltrade)]))
+apedbc <- getAPEs(moddbc)
 summary(apedbc)
 ```
 
 ```{r, eval = FALSE}
 ## Estimates:
-##            Estimate Std. error z value Pr(> |z|)    
-## ltrade    0.1148321  0.0005004 229.459   < 2e-16 ***
-## emu       0.0114102  0.0077264   1.477  0.139737    
-## cuwoo     0.0265827  0.0047666   5.577  2.45e-08 ***
-## cuau      0.0520368  0.0151715   3.430  0.000604 ***
-## cucf      0.0063053  0.0031961   1.973  0.048516 *  
-## cuec      0.0107638  0.0369895   0.291  0.771055    
-## cufr      0.1019601  0.0246482   4.137  3.52e-05 ***
-## cugb      0.0062640  0.0024262   2.582  0.009827 ** 
-## cuin      0.0106628  0.0094163   1.132  0.257478    
-## cuus     -0.0155832  0.0043727  -3.564  0.000366 ***
-## regional  0.0028744  0.0010406   2.762  0.005739 ** 
-## curcol   -0.0261449  0.0154963  -1.687  0.091571 .  
+##           Estimate Std. error z value Pr(> |z|)    
+## ltrade   0.1213377  0.0004681 259.231   < 2e-16 ***
+## cuwoemu  0.0100223  0.0016486   6.079  1.21e-09 ***
+## emu      0.0116944  0.0078456   1.491    0.1361    
+## regional 0.0023338  0.0010544   2.213    0.0269 *  
 ## ---
 ## Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
 ```

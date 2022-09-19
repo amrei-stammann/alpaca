@@ -6,6 +6,11 @@
 
 using namespace Rcpp;
 
+#ifdef RCPP_USE_GLOBAL_ROSTREAM
+Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
+Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
+#endif
+
 // CenterVariables
 arma::mat CenterVariables(const arma::mat& V, const arma::vec& w, const Rcpp::List& klist, const double tol);
 RcppExport SEXP _alpaca_CenterVariables(SEXP VSEXP, SEXP wSEXP, SEXP klistSEXP, SEXP tolSEXP) {

@@ -8,6 +8,7 @@ feglm(
   formula = NULL,
   data = NULL,
   family = binomial(),
+  weights = NULL,
   beta.start = NULL,
   eta.start = NULL,
   control = NULL
@@ -26,6 +27,8 @@ part of the formula: \code{y ~ x | k | add}.}
 Similar to \code{\link[stats]{glm.fit}} this has to be the result of a call to a family 
 function. Default is \code{binomial()}. See \code{\link[stats]{family}} for details of family 
 functions.}
+
+\item{weights}{an optional string with the name of the 'prior weights' variable in \code{data}.}
 
 \item{beta.start}{an optional vector of starting values for the structural parameters in the linear 
 predictor. Default is \eqn{\boldsymbol{\beta} = \mathbf{0}}{\beta = 0}.}
@@ -49,7 +52,7 @@ for large data sets that would be otherwise infeasible to use due to memory limi
 each level in each category.
 }
 \details{
-If \code{\link{feglm}} does not converge this is usually a sign of linear dependence between 
+If \code{\link{feglm}} does not converge this is often a sign of linear dependence between 
 one or more regressors and a fixed effects category. In this case, you should carefully inspect 
 your model specification.
 }
@@ -67,6 +70,9 @@ summary(mod)
 \references{
 Gaure, S. (2013). "OLS with Multiple High Dimensional Category Variables". Computational
 Statistics and Data Analysis, 66.
+
+Marschner, I. (2011). "glm2: Fitting generalized linear models with convergence problems". 
+The R Journal, 3(2).
 
 Stammann, A., F. Heiss, and D. McFadden (2016). "Estimating Fixed Effects Logit Models with 
 Large Panel Data". Working paper.

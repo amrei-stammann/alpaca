@@ -2,7 +2,7 @@
 % Please edit documentation in R/generics.R
 \name{vcov.feglm}
 \alias{vcov.feglm}
-\title{Extract estimates of the covariance matrix}
+\title{Compute covariance matrix after fitting \code{feglm}}
 \usage{
 \method{vcov}{feglm}(
   object,
@@ -18,7 +18,7 @@
 \item{type}{the type of covariance estimate required. \code{"hessian"} refers to the inverse
 of the negative expected Hessian after convergence and is the default option. 
 \code{"outer.product"} is the outer-product-of-the-gradient estimator, 
-\code{"sandwich"} is the sandwich estimator (sometimes also refered as robust estimator), 
+\code{"sandwich"} is the sandwich estimator (sometimes also referred as robust estimator), 
 and \code{"clustered"} computes a clustered covariance matrix given some cluster variables.}
 
 \item{cluster}{a symbolic description indicating the clustering of observations.}
@@ -31,9 +31,9 @@ and \code{"clustered"} computes a clustered covariance matrix given some cluster
 The function \code{\link{vcov.feglm}} returns a named matrix of covariance estimates.
 }
 \description{
-\code{\link{vcov.feglm}} computes an estimate of the covariance matrix of the estimator of the
-structural parameters from objects returned by \code{\link{feglm}}. The estimate is obtained
-using the Hessian, the scores, or a combination of boths after convergence.
+\code{\link{vcov.feglm}} estimates the covariance matrix for the estimator of the
+structural parameters from objects returned by \code{\link{feglm}}. The covariance is computed
+from the Hessian, the scores, or a combination of both after convergence.
 }
 \details{
 Multi-way clustering is done using the algorithm of Cameron, Gelbach, and Miller (2011). An 

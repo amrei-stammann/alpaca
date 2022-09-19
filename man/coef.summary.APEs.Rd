@@ -2,7 +2,7 @@
 % Please edit documentation in R/generics.R
 \name{coef.summary.APEs}
 \alias{coef.summary.APEs}
-\title{Extract coefficient matrix of average partial effects}
+\title{Extract coefficient matrix for average partial effects}
 \usage{
 \method{coef}{summary.APEs}(object, ...)
 }
@@ -16,7 +16,7 @@ The function \code{\link{coef.summary.APEs}} returns a named matrix of estimates
 average partial effects.
 }
 \description{
-\code{\link{coef.summary.APEs}} is a generic function which extracts a coefficient matrix of 
+\code{\link{coef.summary.APEs}} is a generic function which extracts a coefficient matrix for 
 average partial effects from objects returned by \code{\link{getAPEs}}.
 }
 \seealso{

@@ -25,7 +25,7 @@ bibentry(
   year        = "2016",
   doi         = "10.1016/j.jeconom.2015.12.014",
   url         = "https://www.sciencedirect.com/science/article/pii/S0304407615002997",
-  header      = "To cite the bias corrections of Fernández-Val and Weidner in publications use:",
+  header      = "To cite the bias corrections of Fernández-Val and Weidner (2016), i. e. biasCorr() for a classical panel structure, in publications use:",
   textVersion = paste(
     "Fernández-Val, Iván and Martin Weidner (2016).",
     "Individual and time effects in nonlinear panel models with large N, T.",
@@ -41,7 +41,7 @@ bibentry(
   journal      = "ArXiv e-prints",
   year         = "2020",
   url          = "https://arxiv.org/pdf/2004.12655.pdf",
-  header       = "To cite the bias corrections of Hinz, Stammann, and Wanner in publications use:",
+  header       = "To cite the bias corrections of Hinz, Stammann, and Wanner (2020), i. e. biasCorr() for a network panel structure, in publications use:",
   textVersion  = paste(
     "Hinz, Julian, Amrei Stammann, and Joschka Wanner (2020).",
     "State Dependence and Unobserved Heterogeneity in the Extensive Margin of Trade.",

@@ -2,7 +2,7 @@
 % Please edit documentation in R/generics.R
 \name{coef.summary.feglm}
 \alias{coef.summary.feglm}
-\title{Extract coefficient matrix of structural parameters}
+\title{Extract coefficient matrix for structural parameters}
 \usage{
 \method{coef}{summary.feglm}(object, ...)
 }
@@ -16,7 +16,7 @@ The function \code{\link{coef.summary.feglm}} returns a named matrix of estimate
 structural parameters.
 }
 \description{
-\code{\link{coef.summary.feglm}} is a generic function which extracts a coefficient matrix of 
+\code{\link{coef.summary.feglm}} is a generic function which extracts a coefficient matrix for 
 structural parameters from objects returned by \code{\link{feglm}}.
 }
 \seealso{

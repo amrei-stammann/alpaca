@@ -2,7 +2,7 @@
 % Please edit documentation in R/getAPEs.R
 \name{getAPEs}
 \alias{getAPEs}
-\title{Compute average partial effects after fitting binary choice models with a two-/three-way error 
+\title{Compute average partial effects after fitting binary choice models with a one-/two-/three-way error 
 component}
 \usage{
 getAPEs(
@@ -15,15 +15,15 @@ getAPEs(
 }
 \arguments{
 \item{object}{an object of class \code{"biasCorr"} or \code{"feglm"}; currently restricted to 
-\code{\link[stats]{binomial}} with \code{"logit"} or \code{"probit"} link function.}
+\code{\link[stats]{binomial}}.}
 
 \item{n.pop}{unsigned integer indicating a finite population correction for the estimation of the 
 covariance matrix of the average partial effects proposed by 
 Cruz-Gonzalez, Fernández-Val, and Weidner (2017). The correction factor is computed as follows: 
 \eqn{(n^{\ast} - n) / (n^{\ast} - 1)}{(n.pop - n) / (n.pop - 1)}, 
-where \eqn{n^{\ast}}{n.pop} and \eqn{n}{n} are the size of the entire 
-population and the full sample size. Default is \code{NULL}, which refers to a factor of one and 
-is equal to an infinitely large population.}
+where \eqn{n^{\ast}}{n.pop} and \eqn{n}{n} are the sizes of the entire 
+population and the full sample size. Default is \code{NULL}, which refers to a factor of zero and 
+a covariance obtained by the delta method.}
 
 \item{panel.structure}{a string equal to \code{"classic"} or \code{"network"} which determines the 
 structure of the panel used. \code{"classic"} denotes panel structures where for example the same
@@ -33,13 +33,13 @@ for several time periods. Default is \code{"classic"}.}
 
 \item{sampling.fe}{a string equal to \code{"independence"} or \code{"unrestricted"} which imposes 
 sampling assumptions about the unobserved effects. \code{"independence"} imposes that all 
-unobserved effects are mutually independent sequences. \code{"unrestricted"} does not impose any
-sampling assumptions. Note that this option only affects the estimation of the covariance. 
+unobserved effects are independent sequences. \code{"unrestricted"} does not impose any
+sampling assumptions. Note that this option only affects the optional finite population correction. 
 Default is \code{"independence"}.}
 
-\item{weak.exo}{logical indicating if some of the regressors are assumed to be weakly exogenous (e.g. 
+\item{weak.exo}{logical indicating if some of the regressors are assumed to be weakly exogenous (e. g. 
 predetermined). If object is of class \code{"biasCorr"}, the option will be automatically set to 
-\code{TRUE} if the choosen bandwidth parameter is larger than zero. Note that this option only 
+\code{TRUE} if the chosen bandwidth parameter is larger than zero. Note that this option only 
 affects the estimation of the covariance matrix. Default is \code{FALSE}, which assumes that all 
 regressors are strictly exogenous.}
 }
@@ -49,8 +49,9 @@ The function \code{\link{getAPEs}} returns a named list of class \code{"APEs"}.
 \description{
 \code{\link{getAPEs}} is a post-estimation routine that can be used to estimate average partial 
 effects with respect to all covariates in the model and the corresponding covariance matrix. The 
-estimation of the covariance is based on a linear approximation (delta method). Note that 
-the command automatically determines which of the regressors are continuous or binary.
+estimation of the covariance is based on a linear approximation (delta method) plus an optional 
+finite population correction. Note that the command automatically determines which of the regressors 
+are binary or non-binary.
 
 \strong{Remark:} The routine currently does not allow to compute average partial effects based 
 on functional forms like interactions and polynomials.

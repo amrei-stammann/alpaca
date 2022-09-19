@@ -7,6 +7,7 @@
 feglm.nb(
   formula = NULL,
   data = NULL,
+  weights = NULL,
   beta.start = NULL,
   eta.start = NULL,
   init.theta = NULL,
@@ -15,7 +16,7 @@ feglm.nb(
 )
 }
 \arguments{
-\item{formula, data, beta.start, eta.start, control}{see \code{\link{feglm}}.}
+\item{formula, data, weights, beta.start, eta.start, control}{see \code{\link{feglm}}.}
 
 \item{init.theta}{an optional initial value for the theta parameter (see \code{\link[MASS]{glm.nb}}).}
 
@@ -36,6 +37,9 @@ model specification.
 \references{
 Gaure, S. (2013). "OLS with Multiple High Dimensional Category Variables". Computational
 Statistics and Data Analysis. 66.
+
+Marschner, I. (2011). "glm2: Fitting generalized linear models with convergence problems". 
+The R Journal, 3(2).
 
 Stammann, A., F. Heiss, and D. McFadden (2016). "Estimating Fixed Effects Logit Models with Large
 Panel Data". Working paper.
