@@ -11,6 +11,24 @@ The package is also available on [CRAN](https://cran.r-project.org/package=alpac
 
 ## News
 
+### alpaca v0.3.4 (Release Date: 2022-08-10)
+
+Changes:
+
+* Added `vcov.APEs()` generic to extract the covariance matrix after `getAPEs()`.
+* Improved the finite sample performance of bias corrections for the average partial effects in case of perfectly classified observations.
+* Bias corrections for the average partial effects, i.e. `getAPEs()` after `biasCorr()`, do not require an offset algorithm anymore.
+* The default option 'n.pop' in `getAPEs()` has been changed. Now the estimated covariance consists of the delta method part only, i.e. correction factor = 0.
+* Improved the numerical stability of the bias corrections.
+* `biasCorr()` now also supports one-way fixed effects models.
+* Added bias corrections for 'cloglog' and 'cauchit'.
+* `feglm()` and `feglm.nb()` do not return a matrix of scores anymore. Instead they, optionally, return the centered regressor matrix. The corresponding option in `feglmControl()` is 'keep.mx'. Default is TRUE.
+* Improved the numerical stability of the step-halving in `feglm()`.
+* Changed the projection in the MAP algorithm.
+* The default option 'center.tol' in `feglmControl()` has been lowered to better handle fitting problems that are not well-behaved.
+* Added optional 'weights' argument to `feglm()` and `feglm.nb()`.
+* Updated documentation.
+
 ### alpaca v0.3.3 (Release Date: 2020-10-30)
 
 Changes:
