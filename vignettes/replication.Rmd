@@ -19,7 +19,7 @@ One well known example where those limits take place are structural gravity mode
 
 The data set is available either from [Andrew Rose's website][1] or from [sciencedirect][2]. We use the same variable names as @gr16 such that we are able to compare our summary statistics with the ones provided in their *Stata* log-files.
 
-[1]: http://faculty.haas.berkeley.edu/arose/RecRes.htm
+[1]: https://www.andrewkrose.net/
 [2]: https://www.sciencedirect.com/science/article/pii/S0014292116300630#ec0005
 
 ```{r, eval = FALSE}

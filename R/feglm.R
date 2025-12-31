@@ -207,11 +207,6 @@ feglm <- function(
   attr(X, "dimnames") <- NULL
   p <- ncol(X)
   
-  # Check for linear dependence in 'X'
-  if (qr(X)[["rank"]] < p) {
-    stop("Linear dependent terms detected.", call. = FALSE)
-  }
-  
   # Extract weights if required
   if (is.null(weights)) {
     wt <- rep(1.0, nt)
@@ -225,6 +220,11 @@ feglm <- function(
   }
   if (any(wt < 0.0)) {
     stop("negative weights are not allowed.", call. = FALSE)
+  }
+  
+  # Check for linear dependence in 'X'
+  if (lm.wfit(X, y, wt)[["rank"]] < p) {
+    stop("Linear dependent terms detected.", call. = FALSE)
   }
   
   # Compute and check starting guesses

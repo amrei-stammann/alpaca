@@ -13,8 +13,8 @@
 #' comprehensive procedure available \link[lfe]{felm}.
 #' @name
 #' alpaca-package
-#' @docType
-#' package
+#' @aliases
+#' alpaca-package
 #' @importFrom
 #' data.table setDT setkeyv := .SD
 #' @importFrom
@@ -24,7 +24,7 @@
 #' @importFrom
 #' Rcpp evalCpp
 #' @importFrom
-#' stats as.formula binomial model.matrix na.omit poisson pnorm printCoefmat rgamma rlogis rnorm 
+#' stats as.formula binomial lm.wfit model.matrix na.omit poisson pnorm printCoefmat rgamma rlogis rnorm 
 #' rpois terms vcov
 #' @importFrom
 #' utils combn

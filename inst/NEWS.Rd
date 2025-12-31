@@ -1,5 +1,12 @@
 \name{NEWS}
 \title{alpaca news}
+\section{Changes in version 0.3.5}{
+  \itemize{
+    \item Replaced \code{qr()} by \code{lm.wfit()} to fix memory issue
+    \item Removed acceleration scheme from fitting algorithm
+    \item Updated maintainer email address, removed CPP11 restriction, and arxiv urls to doi (#24 @zeileis)
+  }
+}
 \section{Changes in version 0.3.4}{
   \itemize{
     \item Added \code{vcov.APEs()} generic to extract the covariance matrix after \code{getAPEs()}.
